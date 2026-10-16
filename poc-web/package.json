@@ -1,0 +1,53 @@
+{
+  "name": "affordable-housing-3d-poc",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "桃園市可負擔住宅三維圖台 PoC（2D/3D 圖台、自訂生活圈、房源與 720 環景串接）",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -b --noEmit",
+    "model:prepare": "node scripts/prepare-model.mjs",
+    "build:artifact": "tsc -b && vite build --mode artifact --base ./ --outDir dist-artifact && node scripts/pack-assets.mjs dist-artifact",
+    "tiles:fetch": "node scripts/fetch-tiles.mjs",
+    "build:pages": "tsc -b && vite build --mode pages --base ./ --outDir dist-pages"
+  },
+  "dependencies": {
+    "@deck.gl/core": "9.3.10",
+    "@deck.gl/layers": "9.3.10",
+    "@deck.gl/mapbox": "9.3.10",
+    "@deck.gl/mesh-layers": "9.3.10",
+    "maplibre-gl": "^4.7.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "three": "^0.180.0",
+    "zustand": "^5.0.1",
+    "@deck.gl/geo-layers": "9.3.10"
+  },
+  "devDependencies": {
+    "@gltf-transform/core": "^4.5.0",
+    "@gltf-transform/extensions": "^4.5.0",
+    "@gltf-transform/functions": "^4.5.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@types/three": "^0.180.0",
+    "@vitejs/plugin-react": "^4.3.3",
+    "autoprefixer": "^10.4.20",
+    "draco3dgltf": "^1.5.7",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.14",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10",
+    "meshoptimizer": "^0.22.0"
+  },
+  "overrides": {
+    "@luma.gl/core": "9.3.6",
+    "@luma.gl/engine": "9.3.6",
+    "@luma.gl/webgl": "9.3.6",
+    "@luma.gl/shadertools": "9.3.6",
+    "@luma.gl/gltf": "9.3.6",
+    "@luma.gl/constants": "9.3.6"
+  }
+}

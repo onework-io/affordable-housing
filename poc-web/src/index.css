@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root { height: 100%; margin: 0; }
+/* 一律淺色表單：避免系統深色模式把下拉選單變成黑底、文字看不清 */
+:root { color-scheme: light; }
+select, option, optgroup, input, textarea { color-scheme: light; background-color: #fff; color: #1f2937; }
+option:checked { background-color: #d1fae5; color: #065f46; }
+body { @apply bg-slate-100 text-ink font-sans antialiased; }
+
+@layer components {
+  .panel { @apply rounded-xl bg-white shadow-card; }
+  .label { @apply text-xs font-medium text-ink-muted; }
+  .chip { @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium; }
+  .btn { @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition; }
+  .btn-primary { @apply btn bg-brand text-white hover:bg-brand-dark disabled:cursor-not-allowed disabled:bg-slate-300; }
+  .btn-ghost { @apply btn border border-slate-200 bg-white text-ink hover:border-brand-line hover:bg-brand-soft; }
+  .seg { @apply flex-1 rounded-lg border px-2 py-2 text-sm font-medium transition; }
+  .seg-on { @apply border-brand bg-brand text-white; }
+  .seg-off { @apply border-slate-200 bg-white text-ink hover:bg-brand-soft; }
+}
+
+/* 社區標籤卡（MapLibre Marker） */
+.community-card { cursor: pointer; }
+.community-card .box {
+  background: #fff; border: 2px solid #059669; border-radius: 8px; padding: 4px 8px; min-width: 150px;
+  box-shadow: 0 6px 16px rgba(15,23,42,.18); font-size: 11px; line-height: 1.45; color: #1f2937;
+}
+.community-card .title { color: #059669; font-weight: 700; font-size: 13px; }
+.community-card .num { color: #e11d48; font-weight: 700; }
+.community-card .pin { width: 2px; height: 26px; background: #059669; margin: 0 auto; }
+.community-card.dim .box { opacity: .55; border-color: #cbd5e1; }
+.community-card.dim .title { color: #64748b; }
+.community-card.active .box { background: #059669; color: #fff; }
+.community-card.active .title, .community-card.active .num { color: #fff; }
+
+.maplibregl-ctrl-bottom-right { bottom: 36px; }
+
+.cards-compact .community-card .addr, .cards-compact .community-card .dist { display: none; }
+.cards-compact .community-card .box { min-width: 0; }
+.community-card.active .pin { display: none; }
+
+.community-card .match { margin-top: 1px; padding-top: 1px; border-top: 1px dashed #a7f3d0; font-weight: 600; }
+.community-card.cmp .box { box-shadow: 0 0 0 3px #a7f3d0, 0 6px 16px rgba(15,23,42,.18); }
+.community-card .cmp-tag { display: none; font-size: 10px; font-weight: 600; margin-left: 4px; }
+.community-card.cmp .cmp-tag { display: inline; }

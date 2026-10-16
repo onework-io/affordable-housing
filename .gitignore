@@ -1,0 +1,10 @@
+node_modules/
+dist/
+dist-artifact/
+.vite/
+*.log
+.DS_Store
+dist-pages/
+*.tar
+# 報價資料不放公開 repo
+報價/

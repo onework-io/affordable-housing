@@ -1,0 +1,732 @@
+{
+  "source": "HK 專案 OC/3d/parts（PoC 替代模型，非本案建物）",
+  "units": "meter",
+  "upAxis": "Y",
+  "meshes": [
+    {
+      "id": "2F",
+      "file": "2F.glb",
+      "bytes": 4887004,
+      "tris": 67861,
+      "sourceTris": 340717,
+      "usedBy": 1
+    },
+    {
+      "id": "T1_typ_4F",
+      "file": "T1_typ_4F.glb",
+      "bytes": 774080,
+      "tris": 10737,
+      "sourceTris": 54856,
+      "usedBy": 29
+    },
+    {
+      "id": "T1_33F",
+      "file": "T1_33F.glb",
+      "bytes": 790572,
+      "tris": 10966,
+      "sourceTris": 54838,
+      "usedBy": 1
+    },
+    {
+      "id": "T1_3F",
+      "file": "T1_3F.glb",
+      "bytes": 2277896,
+      "tris": 31624,
+      "sourceTris": 158303,
+      "usedBy": 1
+    },
+    {
+      "id": "T1_RF",
+      "file": "T1_RF.glb",
+      "bytes": 1187880,
+      "tris": 16486,
+      "sourceTris": 82618,
+      "usedBy": 1
+    },
+    {
+      "id": "T2_typ_3F",
+      "file": "T2_typ_3F.glb",
+      "bytes": 325936,
+      "tris": 4514,
+      "sourceTris": 24093,
+      "usedBy": 29
+    },
+    {
+      "id": "T2_17F",
+      "file": "T2_17F.glb",
+      "bytes": 1165476,
+      "tris": 16173,
+      "sourceTris": 83065,
+      "usedBy": 1
+    },
+    {
+      "id": "T2_4F",
+      "file": "T2_4F.glb",
+      "bytes": 367856,
+      "tris": 5096,
+      "sourceTris": 25609,
+      "usedBy": 1
+    },
+    {
+      "id": "T2_RF",
+      "file": "T2_RF.glb",
+      "bytes": 386808,
+      "tris": 5360,
+      "sourceTris": 27328,
+      "usedBy": 1
+    }
+  ],
+  "floors": [
+    {
+      "id": "2F",
+      "tower": "PODIUM",
+      "floor": "2F",
+      "level": 2,
+      "mesh": "2F",
+      "offsetY": 0,
+      "minY": 2.22,
+      "maxY": 20.23
+    },
+    {
+      "id": "T1_3F",
+      "tower": "T1",
+      "floor": "3F",
+      "level": 3,
+      "mesh": "T1_3F",
+      "offsetY": 0,
+      "minY": 17.76,
+      "maxY": 23.44
+    },
+    {
+      "id": "T1_4F",
+      "tower": "T1",
+      "floor": "4F",
+      "level": 4,
+      "mesh": "T1_typ_4F",
+      "offsetY": 0,
+      "minY": 21.38,
+      "maxY": 27.06
+    },
+    {
+      "id": "T1_5F",
+      "tower": "T1",
+      "floor": "5F",
+      "level": 5,
+      "mesh": "T1_typ_4F",
+      "offsetY": 3.18,
+      "minY": 24.56,
+      "maxY": 30.24
+    },
+    {
+      "id": "T1_6F",
+      "tower": "T1",
+      "floor": "6F",
+      "level": 6,
+      "mesh": "T1_typ_4F",
+      "offsetY": 6.361,
+      "minY": 27.74,
+      "maxY": 33.42
+    },
+    {
+      "id": "T1_7F",
+      "tower": "T1",
+      "floor": "7F",
+      "level": 7,
+      "mesh": "T1_typ_4F",
+      "offsetY": 9.541,
+      "minY": 30.92,
+      "maxY": 36.6
+    },
+    {
+      "id": "T1_8F",
+      "tower": "T1",
+      "floor": "8F",
+      "level": 8,
+      "mesh": "T1_typ_4F",
+      "offsetY": 12.721,
+      "minY": 34.1,
+      "maxY": 39.78
+    },
+    {
+      "id": "T1_9F",
+      "tower": "T1",
+      "floor": "9F",
+      "level": 9,
+      "mesh": "T1_typ_4F",
+      "offsetY": 15.902,
+      "minY": 37.28,
+      "maxY": 42.96
+    },
+    {
+      "id": "T1_10F",
+      "tower": "T1",
+      "floor": "10F",
+      "level": 10,
+      "mesh": "T1_typ_4F",
+      "offsetY": 19.082,
+      "minY": 40.46,
+      "maxY": 46.14
+    },
+    {
+      "id": "T1_11F",
+      "tower": "T1",
+      "floor": "11F",
+      "level": 11,
+      "mesh": "T1_typ_4F",
+      "offsetY": 22.262,
+      "minY": 43.64,
+      "maxY": 49.32
+    },
+    {
+      "id": "T1_12F",
+      "tower": "T1",
+      "floor": "12F",
+      "level": 12,
+      "mesh": "T1_typ_4F",
+      "offsetY": 25.443,
+      "minY": 46.82,
+      "maxY": 52.5
+    },
+    {
+      "id": "T1_13F",
+      "tower": "T1",
+      "floor": "13F",
+      "level": 13,
+      "mesh": "T1_typ_4F",
+      "offsetY": 28.623,
+      "minY": 50,
+      "maxY": 55.69
+    },
+    {
+      "id": "T1_14F",
+      "tower": "T1",
+      "floor": "14F",
+      "level": 14,
+      "mesh": "T1_typ_4F",
+      "offsetY": 31.804,
+      "minY": 53.18,
+      "maxY": 58.87
+    },
+    {
+      "id": "T1_15F",
+      "tower": "T1",
+      "floor": "15F",
+      "level": 15,
+      "mesh": "T1_typ_4F",
+      "offsetY": 34.984,
+      "minY": 56.36,
+      "maxY": 62.05
+    },
+    {
+      "id": "T1_16F",
+      "tower": "T1",
+      "floor": "16F",
+      "level": 16,
+      "mesh": "T1_typ_4F",
+      "offsetY": 38.164,
+      "minY": 59.54,
+      "maxY": 65.23
+    },
+    {
+      "id": "T1_17F",
+      "tower": "T1",
+      "floor": "17F",
+      "level": 17,
+      "mesh": "T1_typ_4F",
+      "offsetY": 41.476,
+      "minY": 62.86,
+      "maxY": 68.54
+    },
+    {
+      "id": "T1_18F",
+      "tower": "T1",
+      "floor": "18F",
+      "level": 18,
+      "mesh": "T1_typ_4F",
+      "offsetY": 44.764,
+      "minY": 66.14,
+      "maxY": 71.83
+    },
+    {
+      "id": "T1_19F",
+      "tower": "T1",
+      "floor": "19F",
+      "level": 19,
+      "mesh": "T1_typ_4F",
+      "offsetY": 47.944,
+      "minY": 69.32,
+      "maxY": 75.01
+    },
+    {
+      "id": "T1_20F",
+      "tower": "T1",
+      "floor": "20F",
+      "level": 20,
+      "mesh": "T1_typ_4F",
+      "offsetY": 51.124,
+      "minY": 72.5,
+      "maxY": 78.19
+    },
+    {
+      "id": "T1_21F",
+      "tower": "T1",
+      "floor": "21F",
+      "level": 21,
+      "mesh": "T1_typ_4F",
+      "offsetY": 54.305,
+      "minY": 75.68,
+      "maxY": 81.37
+    },
+    {
+      "id": "T1_22F",
+      "tower": "T1",
+      "floor": "22F",
+      "level": 22,
+      "mesh": "T1_typ_4F",
+      "offsetY": 57.485,
+      "minY": 78.86,
+      "maxY": 84.55
+    },
+    {
+      "id": "T1_23F",
+      "tower": "T1",
+      "floor": "23F",
+      "level": 23,
+      "mesh": "T1_typ_4F",
+      "offsetY": 60.665,
+      "minY": 82.05,
+      "maxY": 87.73
+    },
+    {
+      "id": "T1_24F",
+      "tower": "T1",
+      "floor": "24F",
+      "level": 24,
+      "mesh": "T1_typ_4F",
+      "offsetY": 63.846,
+      "minY": 85.23,
+      "maxY": 90.91
+    },
+    {
+      "id": "T1_25F",
+      "tower": "T1",
+      "floor": "25F",
+      "level": 25,
+      "mesh": "T1_typ_4F",
+      "offsetY": 67.026,
+      "minY": 88.41,
+      "maxY": 94.09
+    },
+    {
+      "id": "T1_26F",
+      "tower": "T1",
+      "floor": "26F",
+      "level": 26,
+      "mesh": "T1_typ_4F",
+      "offsetY": 70.206,
+      "minY": 91.59,
+      "maxY": 97.27
+    },
+    {
+      "id": "T1_27F",
+      "tower": "T1",
+      "floor": "27F",
+      "level": 27,
+      "mesh": "T1_typ_4F",
+      "offsetY": 73.387,
+      "minY": 94.77,
+      "maxY": 100.45
+    },
+    {
+      "id": "T1_28F",
+      "tower": "T1",
+      "floor": "28F",
+      "level": 28,
+      "mesh": "T1_typ_4F",
+      "offsetY": 76.567,
+      "minY": 97.95,
+      "maxY": 103.63
+    },
+    {
+      "id": "T1_29F",
+      "tower": "T1",
+      "floor": "29F",
+      "level": 29,
+      "mesh": "T1_typ_4F",
+      "offsetY": 79.747,
+      "minY": 101.13,
+      "maxY": 106.81
+    },
+    {
+      "id": "T1_30F",
+      "tower": "T1",
+      "floor": "30F",
+      "level": 30,
+      "mesh": "T1_typ_4F",
+      "offsetY": 82.928,
+      "minY": 104.31,
+      "maxY": 109.99
+    },
+    {
+      "id": "T1_31F",
+      "tower": "T1",
+      "floor": "31F",
+      "level": 31,
+      "mesh": "T1_typ_4F",
+      "offsetY": 86.108,
+      "minY": 107.49,
+      "maxY": 113.17
+    },
+    {
+      "id": "T1_32F",
+      "tower": "T1",
+      "floor": "32F",
+      "level": 32,
+      "mesh": "T1_typ_4F",
+      "offsetY": 89.288,
+      "minY": 110.67,
+      "maxY": 116.35
+    },
+    {
+      "id": "T1_33F",
+      "tower": "T1",
+      "floor": "33F",
+      "level": 33,
+      "mesh": "T1_33F",
+      "offsetY": 0,
+      "minY": 113.85,
+      "maxY": 119.66
+    },
+    {
+      "id": "T1_RF",
+      "tower": "T1",
+      "floor": "RF",
+      "level": 99,
+      "mesh": "T1_RF",
+      "offsetY": 0,
+      "minY": 114.32,
+      "maxY": 132.28
+    },
+    {
+      "id": "T2_3F",
+      "tower": "T2",
+      "floor": "3F",
+      "level": 3,
+      "mesh": "T2_typ_3F",
+      "offsetY": 0,
+      "minY": 15.48,
+      "maxY": 22.51
+    },
+    {
+      "id": "T2_4F",
+      "tower": "T2",
+      "floor": "4F",
+      "level": 4,
+      "mesh": "T2_4F",
+      "offsetY": 0,
+      "minY": 18.75,
+      "maxY": 25.78
+    },
+    {
+      "id": "T2_5F",
+      "tower": "T2",
+      "floor": "5F",
+      "level": 5,
+      "mesh": "T2_typ_3F",
+      "offsetY": 6.587,
+      "minY": 22.07,
+      "maxY": 29.1
+    },
+    {
+      "id": "T2_6F",
+      "tower": "T2",
+      "floor": "6F",
+      "level": 6,
+      "mesh": "T2_typ_3F",
+      "offsetY": 9.912,
+      "minY": 25.4,
+      "maxY": 32.43
+    },
+    {
+      "id": "T2_7F",
+      "tower": "T2",
+      "floor": "7F",
+      "level": 7,
+      "mesh": "T2_typ_3F",
+      "offsetY": 13.237,
+      "minY": 28.72,
+      "maxY": 35.75
+    },
+    {
+      "id": "T2_8F",
+      "tower": "T2",
+      "floor": "8F",
+      "level": 8,
+      "mesh": "T2_typ_3F",
+      "offsetY": 16.562,
+      "minY": 32.05,
+      "maxY": 39.08
+    },
+    {
+      "id": "T2_9F",
+      "tower": "T2",
+      "floor": "9F",
+      "level": 9,
+      "mesh": "T2_typ_3F",
+      "offsetY": 19.887,
+      "minY": 35.37,
+      "maxY": 42.4
+    },
+    {
+      "id": "T2_10F",
+      "tower": "T2",
+      "floor": "10F",
+      "level": 10,
+      "mesh": "T2_typ_3F",
+      "offsetY": 23.212,
+      "minY": 38.7,
+      "maxY": 45.73
+    },
+    {
+      "id": "T2_11F",
+      "tower": "T2",
+      "floor": "11F",
+      "level": 11,
+      "mesh": "T2_typ_3F",
+      "offsetY": 26.537,
+      "minY": 42.02,
+      "maxY": 49.05
+    },
+    {
+      "id": "T2_12F",
+      "tower": "T2",
+      "floor": "12F",
+      "level": 12,
+      "mesh": "T2_typ_3F",
+      "offsetY": 29.862,
+      "minY": 45.35,
+      "maxY": 52.38
+    },
+    {
+      "id": "T2_13F",
+      "tower": "T2",
+      "floor": "13F",
+      "level": 13,
+      "mesh": "T2_typ_3F",
+      "offsetY": 33.187,
+      "minY": 48.67,
+      "maxY": 55.7
+    },
+    {
+      "id": "T2_14F",
+      "tower": "T2",
+      "floor": "14F",
+      "level": 14,
+      "mesh": "T2_typ_3F",
+      "offsetY": 36.512,
+      "minY": 52,
+      "maxY": 59.03
+    },
+    {
+      "id": "T2_15F",
+      "tower": "T2",
+      "floor": "15F",
+      "level": 15,
+      "mesh": "T2_typ_3F",
+      "offsetY": 39.837,
+      "minY": 55.32,
+      "maxY": 62.35
+    },
+    {
+      "id": "T2_16F",
+      "tower": "T2",
+      "floor": "16F",
+      "level": 16,
+      "mesh": "T2_typ_3F",
+      "offsetY": 43.162,
+      "minY": 58.65,
+      "maxY": 65.68
+    },
+    {
+      "id": "T2_17F",
+      "tower": "T2",
+      "floor": "17F",
+      "level": 17,
+      "mesh": "T2_17F",
+      "offsetY": 0,
+      "minY": 61.53,
+      "maxY": 68.56
+    },
+    {
+      "id": "T2_18F",
+      "tower": "T2",
+      "floor": "18F",
+      "level": 18,
+      "mesh": "T2_typ_3F",
+      "offsetY": 49.372,
+      "minY": 64.86,
+      "maxY": 71.89
+    },
+    {
+      "id": "T2_19F",
+      "tower": "T2",
+      "floor": "19F",
+      "level": 19,
+      "mesh": "T2_typ_3F",
+      "offsetY": 52.697,
+      "minY": 68.18,
+      "maxY": 75.21
+    },
+    {
+      "id": "T2_20F",
+      "tower": "T2",
+      "floor": "20F",
+      "level": 20,
+      "mesh": "T2_typ_3F",
+      "offsetY": 56.022,
+      "minY": 71.51,
+      "maxY": 78.54
+    },
+    {
+      "id": "T2_21F",
+      "tower": "T2",
+      "floor": "21F",
+      "level": 21,
+      "mesh": "T2_typ_3F",
+      "offsetY": 59.347,
+      "minY": 74.83,
+      "maxY": 81.86
+    },
+    {
+      "id": "T2_22F",
+      "tower": "T2",
+      "floor": "22F",
+      "level": 22,
+      "mesh": "T2_typ_3F",
+      "offsetY": 62.672,
+      "minY": 78.16,
+      "maxY": 85.19
+    },
+    {
+      "id": "T2_23F",
+      "tower": "T2",
+      "floor": "23F",
+      "level": 23,
+      "mesh": "T2_typ_3F",
+      "offsetY": 65.997,
+      "minY": 81.48,
+      "maxY": 88.51
+    },
+    {
+      "id": "T2_24F",
+      "tower": "T2",
+      "floor": "24F",
+      "level": 24,
+      "mesh": "T2_typ_3F",
+      "offsetY": 69.322,
+      "minY": 84.81,
+      "maxY": 91.84
+    },
+    {
+      "id": "T2_25F",
+      "tower": "T2",
+      "floor": "25F",
+      "level": 25,
+      "mesh": "T2_typ_3F",
+      "offsetY": 72.647,
+      "minY": 88.13,
+      "maxY": 95.16
+    },
+    {
+      "id": "T2_26F",
+      "tower": "T2",
+      "floor": "26F",
+      "level": 26,
+      "mesh": "T2_typ_3F",
+      "offsetY": 75.972,
+      "minY": 91.46,
+      "maxY": 98.49
+    },
+    {
+      "id": "T2_27F",
+      "tower": "T2",
+      "floor": "27F",
+      "level": 27,
+      "mesh": "T2_typ_3F",
+      "offsetY": 79.297,
+      "minY": 94.78,
+      "maxY": 101.81
+    },
+    {
+      "id": "T2_28F",
+      "tower": "T2",
+      "floor": "28F",
+      "level": 28,
+      "mesh": "T2_typ_3F",
+      "offsetY": 82.622,
+      "minY": 98.11,
+      "maxY": 105.14
+    },
+    {
+      "id": "T2_29F",
+      "tower": "T2",
+      "floor": "29F",
+      "level": 29,
+      "mesh": "T2_typ_3F",
+      "offsetY": 85.947,
+      "minY": 101.43,
+      "maxY": 108.46
+    },
+    {
+      "id": "T2_30F",
+      "tower": "T2",
+      "floor": "30F",
+      "level": 30,
+      "mesh": "T2_typ_3F",
+      "offsetY": 89.272,
+      "minY": 104.76,
+      "maxY": 111.79
+    },
+    {
+      "id": "T2_31F",
+      "tower": "T2",
+      "floor": "31F",
+      "level": 31,
+      "mesh": "T2_typ_3F",
+      "offsetY": 92.597,
+      "minY": 108.08,
+      "maxY": 115.11
+    },
+    {
+      "id": "T2_32F",
+      "tower": "T2",
+      "floor": "32F",
+      "level": 32,
+      "mesh": "T2_typ_3F",
+      "offsetY": 95.923,
+      "minY": 111.41,
+      "maxY": 118.44
+    },
+    {
+      "id": "T2_33F",
+      "tower": "T2",
+      "floor": "33F",
+      "level": 33,
+      "mesh": "T2_typ_3F",
+      "offsetY": 99.248,
+      "minY": 114.73,
+      "maxY": 121.76
+    },
+    {
+      "id": "T2_RF",
+      "tower": "T2",
+      "floor": "RF",
+      "level": 99,
+      "mesh": "T2_RF",
+      "offsetY": 0,
+      "minY": 116.19,
+      "maxY": 132.58
+    }
+  ],
+  "totalBytes": 12163508
+}

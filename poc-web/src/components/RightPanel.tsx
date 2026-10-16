@@ -226,7 +226,7 @@ function UnitDetail({ unit, towerLabel }: { unit: Unit; towerLabel: string }) {
       ) : (
         <div className="mt-3 rounded-lg border border-dashed border-slate-300 p-2 text-center text-sm text-ink-muted">720 環景尚未提供</div>
       )}
-      {unit.panoUrl && <p className="mt-2 text-[11px] text-ink-faint">環景為示範連結（{DEMO_VR.provider}，非本戶實景）。</p>}
+      {unit.panoUrl && <p className="mt-2 text-[11px] text-ink-faint">環景為示範連結（{DEMO_VR.provider}，非本戶實景）；視窗內另可切換 3D 實景（高斯潑濺）。</p>}
       <p className="mt-1 text-[11px] text-ink-faint">3D 已將此戶所在樓層標示為綠色；格局圖請見平台房源詳細頁。</p>
     </section>
   )

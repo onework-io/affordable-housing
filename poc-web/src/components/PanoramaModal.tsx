@@ -2,7 +2,7 @@
 // 支援全螢幕、Esc／點背景關閉；外部網站若禁止嵌入，可改按「在新分頁開啟」。
 import { useEffect, useRef, useState } from 'react'
 import { selectedCommunity, useAppStore } from '@/store/useAppStore'
-import { DEMO_VR } from '@/config/vr'
+import { toursFor } from '@/config/vr'
 
 export function PanoramaModal() {
   const s = useAppStore()
@@ -11,7 +11,13 @@ export function PanoramaModal() {
   const frameBox = useRef<HTMLDivElement>(null)
   const [loaded, setLoaded] = useState(false)
   const [slow, setSlow] = useState(false)
+  const [tourId, setTourId] = useState<string | null>(null)
+  const tours = toursFor(unit?.panoUrl ?? null)
+  const tour = tours.find((t) => t.id === tourId) ?? tours[0]
 
+  useEffect(() => {
+    setTourId(null)
+  }, [unit?.id])
   useEffect(() => {
     if (!unit) return
     setLoaded(false)
@@ -24,9 +30,9 @@ export function PanoramaModal() {
       window.removeEventListener('keydown', onKey)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [unit?.id])
+  }, [unit?.id, tour?.id])
 
-  if (!unit?.panoUrl) return null
+  if (!unit?.panoUrl || !tour) return null
   const price = unit.price ? `${unit.price.toLocaleString()} 萬` : '待公告'
   const fullscreen = () => frameBox.current?.requestFullscreen?.().catch(() => {})
 
@@ -36,7 +42,7 @@ export function PanoramaModal() {
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <span className="rounded bg-brand px-2 py-0.5 text-xs font-bold text-white">線上賞屋 720°</span>
+              <span className="rounded bg-brand px-2 py-0.5 text-xs font-bold text-white">線上賞屋</span>
               <span className="truncate text-base font-bold text-ink">
                 {c?.name} · {unit.label}
               </span>
@@ -47,11 +53,25 @@ export function PanoramaModal() {
               <span className="chip bg-slate-100">總價 {price}</span>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex overflow-hidden rounded-lg border border-slate-200 text-xs" role="tablist" aria-label="切換場景">
+              {tours.map((t) => (
+                <button
+                  key={t.id}
+                  role="tab"
+                  aria-selected={t.id === tour.id}
+                  data-testid={`tour-${t.id}`}
+                  onClick={() => setTourId(t.id)}
+                  className={`px-2.5 py-1.5 font-medium ${t.id === tour.id ? (t.kind === '3dgs' ? 'bg-amber-500 text-white' : 'bg-brand text-white') : 'bg-white hover:bg-slate-50'}`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
             <button className="btn-ghost py-1.5 text-xs" onClick={fullscreen} data-testid="pano-fullscreen">
               ⛶ 全螢幕
             </button>
-            <a className="btn-ghost py-1.5 text-xs" href={unit.panoUrl} target="_blank" rel="noopener noreferrer">
+            <a className="btn-ghost py-1.5 text-xs" href={tour.url} target="_blank" rel="noopener noreferrer">
               新分頁開啟 ↗
             </a>
             <button className="grid h-9 w-9 place-items-center rounded-lg text-2xl leading-none text-ink-faint hover:bg-slate-100 hover:text-ink" onClick={() => s.openPano(null)} aria-label="關閉" data-testid="pano-close">
@@ -61,9 +81,9 @@ export function PanoramaModal() {
         </div>
         <div ref={frameBox} className="relative min-h-0 flex-1 bg-slate-900">
           <iframe
-            key={unit.id}
-            title={`${unit.label} 線上賞屋`}
-            src={unit.panoUrl}
+            key={`${unit.id}-${tour.id}`}
+            title={`${unit.label} ${tour.label}`}
+            src={tour.url}
             className="h-full w-full border-0"
             allow="fullscreen; xr-spatial-tracking; gyroscope; accelerometer"
             allowFullScreen
@@ -74,13 +94,13 @@ export function PanoramaModal() {
             <div className="absolute inset-0 grid place-items-center text-sm text-white/80">
               <div className="flex flex-col items-center gap-3">
                 <span className="h-8 w-8 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                載入 720 環景…
+                載入{tour.label}…
                 {slow && <span className="text-xs text-white/60">載入較久，可改按右上「新分頁開啟」</span>}
               </div>
             </div>
           )}
           <div className="pointer-events-none absolute bottom-3 left-3 rounded bg-black/55 px-2 py-1 text-[11px] text-white">
-            示範：{DEMO_VR.provider}（非本戶實景）・拖曳環視・Esc 關閉
+            示範：{tour.provider}（非本戶實景）・{tour.kind === '3dgs' ? '拖曳旋轉、滾輪縮放、可自由移動視角' : '拖曳環視'}・Esc 關閉
           </div>
         </div>
       </div>

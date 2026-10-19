@@ -1,6 +1,6 @@
 // 資料存取層：PoC 由前端示範資料回應，並套用後台（adminStore）的設定；
 // 正式版改呼叫後端 API（住宅資料服務、生活圈畫圈服務…），介面維持 Promise，UI 不需改動。
-import type { BusStop, Community, Facility, LifeCircleQuery, LifeCircleResult, ModelManifest, Unit } from '@/types'
+import type { BusStop, Community, Facility, LifeCircleQuery, LifeCircleResult, ModelManifest, ModelPlacement, Unit } from '@/types'
 import { COMMUNITIES } from '@/data/communities'
 import { buildFacilities, buildUnits } from '@/data/mock'
 import { haversine } from '@/utils/geo'
@@ -17,7 +17,8 @@ export function listCommunitiesAll(): (Community & { enabled: boolean })[] {
   const { communityOverrides, addedCommunities } = useAdminStore.getState()
   return [...COMMUNITIES, ...addedCommunities].map((c) => {
     const o = communityOverrides[c.id] ?? {}
-    const model = c.model && o.model ? { ...c.model, ...o.model } : c.model
+    // 後台上傳的 GLB 可取代分層模型，也可加到只有量體的社區
+    const model = o.model?.kind === 'upload' ? ({ ...(c.model ?? {}), ...o.model } as ModelPlacement) : c.model && o.model ? { ...c.model, ...o.model } : c.model
     return {
       ...c,
       ...(o.name ? { name: o.name } : {}),

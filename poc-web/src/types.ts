@@ -14,6 +14,28 @@ export interface ModelPlacement {
   altitude: number // 底部高程（公尺）
   status: 'confirmed' | 'pending'
   source: string
+  /** 'upload'：後台上傳的單一 GLB（存於瀏覽器 IndexedDB）；未填為 manifest 分層模型 */
+  kind?: 'manifest' | 'upload'
+  /** 上傳 GLB 的儲存鍵 */
+  uploadKey?: string
+  /** 單位換算（模型單位 → 公尺）：m=1、cm=0.01、mm=0.001、ft=0.3048 */
+  scale?: number
+  /** 模型上軸：glTF 標準為 Y；部分 BIM 匯出為 Z */
+  upAxis?: 'Y' | 'Z'
+  /** 原點置中：模型局部座標中，要對到錨點的點（底面中心） */
+  center?: [number, number, number]
+  /** 是否將底面中心對齊錨點（否則以模型原點對齊） */
+  recenter?: boolean
+  /** 模型局部座標包圍盒 [minX, minY, minZ, maxX, maxY, maxZ]（模型單位） */
+  bounds?: [number, number, number, number, number, number]
+  /** 模型尺寸（公尺，寬 × 深 × 高） */
+  size?: [number, number, number]
+  /** 每層樓高（公尺），供樓層亮顯與視野分析推算 */
+  floorHeight?: number
+  fileName?: string
+  bytes?: number
+  tris?: number
+  uploadedAt?: string
 }
 
 /** 無 BIM 模型時的示意量體 */

@@ -90,9 +90,9 @@ export function RightPanel() {
           <dt className="text-ink-muted">基地面積</dt>
           <dd>{c.siteArea.toLocaleString()} 平方公尺</dd>
           <dt className="text-ink-muted">3D 模型</dt>
-          <dd>{c.model ? <span className="chip bg-emerald-50 text-emerald-700">已對應 · {c.model.source}</span> : <span className="chip bg-amber-50 text-amber-700">待提供 · 量體示意</span>}</dd>
+          <dd>{c.model ? <span className={`chip ${c.model.status === 'confirmed' ? 'bg-emerald-50 text-emerald-700' : 'bg-blue-50 text-blue-700'}`}>{c.model.status === 'confirmed' ? '已對應' : '待確認'} · {c.model.source}</span> : <span className="chip bg-amber-50 text-amber-700">待提供 · 量體示意</span>}</dd>
         </dl>
-        {c.model && (
+        {c.model && c.model.kind !== 'upload' && (
           <button
             className={`mt-3 w-full ${s.buildingViewId === c.id ? 'btn-ghost' : 'btn-primary'}`}
             data-testid="open-building"
@@ -101,7 +101,7 @@ export function RightPanel() {
             {s.buildingViewId === c.id ? '← 返回圖台' : '🏢 單棟 3D 檢視'}
           </button>
         )}
-        {c.note && <p className="mt-2 rounded bg-slate-50 p-2 text-[11px] text-ink-muted">{c.note}</p>}
+        {c.note && !(c.model?.kind === 'upload' && c.note.includes('尚未')) && <p className="mt-2 rounded bg-slate-50 p-2 text-[11px] text-ink-muted">{c.note}</p>}
       </section>
 
       {unit ? (

@@ -13,6 +13,7 @@ import { CATEGORY } from '@/config/lifeCircle'
 import { isFilterActive } from '@/config/filters'
 import { selectedUnit, useAppStore } from '@/store/useAppStore'
 import { buildLayers, resolvePick } from './buildLayers'
+import { getModelUrl } from '@/utils/modelStore'
 import * as api from '@/services/api'
 import type { BusStop, Facility, ModelManifest } from '@/types'
 import { fmtKm, haversine } from '@/utils/geo'
@@ -88,6 +89,7 @@ export function MapView() {
   const markersRef = useRef<Map<string, { marker: maplibregl.Marker; el: HTMLDivElement }>>(new Map())
   const [manifests, setManifests] = useState<Record<string, ModelManifest>>({})
   const [meshUrls, setMeshUrls] = useState<Record<string, Record<string, string>>>({})
+  const [uploadUrls, setUploadUrls] = useState<Record<string, string>>({})
   const [basemap, setBasemap] = useState<BasemapId>('emap')
   const [near, setNear] = useState(false)
   const busHighlightRef = useRef<string | null>(null)
@@ -229,7 +231,7 @@ export function MapView() {
   // 載入各社區的模型 manifest
   useEffect(() => {
     for (const c of s.communities) {
-      if (!c.model || manifests[c.id]) continue
+      if (!c.model || c.model.kind === 'upload' || manifests[c.id]) continue
       const base = c.model.baseUrl
       api
         .getModelManifest(c.model.manifestUrl)
@@ -241,6 +243,17 @@ export function MapView() {
         .catch(console.error)
     }
   }, [s.communities, manifests])
+
+  // 後台上傳的 GLB（IndexedDB → blob URL）
+  useEffect(() => {
+    for (const c of s.communities) {
+      const key = c.model?.kind === 'upload' ? c.model.uploadKey : null
+      if (!key || uploadUrls[c.id]) continue
+      getModelUrl(key)
+        .then((url) => url && setUploadUrls((prev) => ({ ...prev, [c.id]: url })))
+        .catch(console.error)
+    }
+  }, [s.communities, uploadUrls])
 
   // 圖層
   const layers = useMemo(
@@ -261,8 +274,9 @@ export function MapView() {
         showBus: s.showBus,
         showBusLabels: near,
         viewshed: s.viewshed,
+        uploadUrls,
       }),
-    [s.viewMode, s.communities, manifests, meshUrls, s.facilities, s.categories, s.query, s.result, s.selectedCommunityId, unit, s.floorFilter, s.busStops, s.showBus, near, s.viewshed],
+    [s.viewMode, s.communities, manifests, meshUrls, uploadUrls, s.facilities, s.categories, s.query, s.result, s.selectedCommunityId, unit, s.floorFilter, s.busStops, s.showBus, near, s.viewshed],
   )
   // 動態公車（模擬）：每一幀只重算公車圖層，其餘圖層沿用
   useEffect(() => {

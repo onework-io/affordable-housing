@@ -8,6 +8,7 @@ import type { Layer, PickingInfo } from '@deck.gl/core'
 import type { BusStop, Community, Facility, FacilityCategory, LifeCircleQuery, LifeCircleResult, ModelManifest, Unit, ViewMode } from '@/types'
 import { CATEGORY } from '@/config/lifeCircle'
 import { circlePolygon, haversine } from '@/utils/geo'
+import { uploadPlacement } from '@/utils/uploadModel'
 
 const BRAND: [number, number, number] = [5, 150, 105] // 主色（翠綠）
 /** 3D 設施立標高度（公尺） */
@@ -60,6 +61,8 @@ export interface LayerContext {
   /** 近景（zoom ≥ 16.3）才顯示站牌名稱，避免遠景擁擠 */
   showBusLabels: boolean
   viewshed: (ViewshedResult & { label: string }) | null
+  /** 後台上傳的 GLB：社區 → 可載入的網址 */
+  uploadUrls: Record<string, string>
 }
 
 /**
@@ -72,6 +75,10 @@ export function resolvePick(info: PickingInfo | null): { communityId: string; fl
     const d = info!.object as FloorDatum | undefined
     if (!d) return null
     return { communityId: d.communityId, floor: d.tower === 'PODIUM' ? undefined : { tower: d.tower, level: d.level } }
+  }
+  if (id.startsWith('upload-') && !id.startsWith('upload-floor-')) {
+    const d = info!.object as { id: string } | undefined
+    return d ? { communityId: d.id } : null
   }
   if (id.startsWith('massing-') && !id.startsWith('massing-floor-')) {
     const d = info!.object as { id: string } | undefined
@@ -261,7 +268,7 @@ export function buildLayers(ctx: LayerContext): Layer[] {
 
   // ── 建物：無 BIM 的社區以量體示意 ─────────────────────
   for (const c of ctx.communities) {
-    if (!c.massing) continue
+    if (!c.massing || c.model?.kind === 'upload') continue
     const selected = ctx.selectedCommunityId === c.id
     const fh = c.massing.floorHeight
     const height = c.floorsAbove * fh
@@ -301,7 +308,7 @@ export function buildLayers(ctx: LayerContext): Layer[] {
     const m = c.model
     const manifest = ctx.manifests[c.id]
     const urls = ctx.meshUrls[c.id]
-    if (!m || !manifest || !urls) continue
+    if (!m || m.kind === 'upload' || !manifest || !urls) continue
     const selected = ctx.selectedCommunityId === c.id
     const u = selected ? ctx.selectedUnit : null
     const hl = u ? { tower: u.tower, level: u.level } : selected ? ctx.floorFilter : null
@@ -331,6 +338,49 @@ export function buildLayers(ctx: LayerContext): Layer[] {
           autoHighlight: true,
           highlightColor: [167, 243, 208, 140],
           updateTriggers: { getColor: [selected, hl?.tower, hl?.level] },
+        }),
+      )
+    }
+  }
+
+  // ── 建物：後台上傳的 GLB（單一模型；樓層以樓高推算亮顯） ─────────────
+  for (const c of ctx.communities) {
+    const m = c.model
+    const url = ctx.uploadUrls[c.id]
+    if (!m || m.kind !== 'upload' || !url) continue
+    const p = uploadPlacement(m)
+    const selected = ctx.selectedCommunityId === c.id
+    const hl = selected ? ctx.selectedUnit ?? (ctx.floorFilter ? { level: ctx.floorFilter.level } : null) : null
+    const fill: [number, number, number, number] = hl ? [236, 236, 232, 90] : selected ? [...BRAND, 255] : [...WHITE, 255]
+    out.push(
+      new ScenegraphLayer<{ id: string }>({
+        id: `upload-${c.id}-${m.uploadedAt ?? ''}`,
+        data: [{ id: c.id }],
+        scenegraph: url,
+        getPosition: () => [m.anchor[0], m.anchor[1], m.altitude],
+        getOrientation: () => p.orientation,
+        getTranslation: () => p.translation,
+        sizeScale: m.scale ?? 1,
+        getColor: () => fill,
+        _lighting: 'pbr',
+        pickable: true,
+        autoHighlight: true,
+        highlightColor: [167, 243, 208, 140],
+        updateTriggers: { getColor: [selected, !!hl], getOrientation: [m.yaw, m.upAxis], getTranslation: [p.translation.join()] },
+      }),
+    )
+    if (hl && is3d) {
+      const fh = m.floorHeight ?? 3.2
+      const z = p.baseZ + (hl.level - 1) * fh
+      out.push(
+        new PolygonLayer({
+          id: `upload-floor-${c.id}`,
+          data: [{ polygon: p.footprint.map(([x, y]) => [x, y, z]) }],
+          getPolygon: (d: { polygon: number[][] }) => d.polygon,
+          extruded: true,
+          getElevation: fh * 0.92,
+          getFillColor: [16, 185, 129, 230],
+          material: { ambient: 0.6, diffuse: 0.6 },
         }),
       )
     }

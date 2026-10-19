@@ -224,7 +224,13 @@ export const useAppStore = create<AppState>((set, get) => ({
       let floorZ = (floor.level - 1) * (c.massing?.floorHeight ?? 3.2)
       let center = c.lngLat
       let excludeM = 35
-      if (c.model) {
+      if (c.model?.kind === 'upload') {
+        // 上傳 GLB：以每層樓高推算，觀察點在錨點（底面中心）
+        const { uploadPlacement } = await import('@/utils/uploadModel')
+        floorZ = uploadPlacement(c.model).baseZ + (floor.level - 1) * (c.model.floorHeight ?? 3.2)
+        center = c.model.anchor
+        excludeM = Math.max(35, Math.max(...(c.model.size ?? [60, 60]).slice(0, 2)) / 2 + 8)
+      } else if (c.model) {
         const m = await api.getModelManifest(c.model.manifestUrl)
         const f = m.floors.find((x) => x.tower === floor.tower && x.level === floor.level)
         if (f) floorZ = c.model.altitude + f.minY // manifest 的 minY 已是該層實際高度

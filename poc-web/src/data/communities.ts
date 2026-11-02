@@ -87,7 +87,45 @@ export const COMMUNITIES: Community[] = [
     dataDate: '115.10.07',
     note: '尚未取得 BIM 模型，以量體示意。',
   },
+  {
+    // 第二段建築：品聚中運段（中壢運動園區），BIM 由 Navisworks 匯出（BimAngle），網頁版已轉為 meshopt 壓縮
+    id: 'ZY-1',
+    name: '品聚中運段',
+    district: '中壢區',
+    address: '桃園市中壢區龍岡路二段 321 巷旁（中壢運動園區，示意位置）',
+    lngLat: [121.23322, 24.94315],
+    floorsAbove: 14,
+    floorsBelow: 2,
+    siteArea: 8600,
+    towers: [
+      { id: 'A', label: 'A 棟', fromFloor: 2, toFloor: 14, unitCodes: range(1, 6).map((n) => String(n).padStart(2, '0')) },
+      { id: 'B', label: 'B 棟', fromFloor: 2, toFloor: 13, unitCodes: range(1, 6).map((n) => String(n).padStart(2, '0')) },
+    ],
+    model: {
+      kind: 'upload',
+      url: 'models/pinju.glb',
+      manifestUrl: '',
+      baseUrl: '',
+      anchor: [121.23322, 24.94315],
+      yaw: 90, // 模型兩棟南北排列；套繪圖為東西並排，故轉 90°
+      altitude: 0,
+      status: 'pending',
+      source: 'BIM 模型（Navisworks 匯出）',
+      scale: 1,
+      upAxis: 'Y',
+      recenter: true,
+      bounds: [7.7, 0, -76.4, 52.1, 58.2, -25.2], // 兩棟建物範圍（不含基地地面）
+      center: [29.9, 0, -50.8],
+      size: [44.4, 51.2, 58.2],
+      floorHeight: 3.6,
+      fileName: 'pinju.glb',
+      bytes: 9819900,
+      tris: 1569462,
+    },
+    dataDate: '115.11.02',
+    note: '位置依建照套繪圖（114 建字）推估，請於後台「BIM 模型與定位」微調錨點與旋轉角。',
+  },
 ]
 
 /** 各社區平台列出售中戶數（示範：與簡報一致） */
-export const ON_SALE_TARGET: Record<string, number> = { A11: 15, 'A18-1': 20, 'A18-2': 2, A21: 12, A23: 9 }
+export const ON_SALE_TARGET: Record<string, number> = { A11: 15, 'A18-1': 20, 'A18-2': 2, A21: 12, A23: 9, 'ZY-1': 8 }

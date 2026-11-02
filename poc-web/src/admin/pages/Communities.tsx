@@ -134,9 +134,11 @@ function Detail({ c, onSave }: { c: Row; onSave: (o: CommunityOverride) => void 
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    if (!isUpload || !c.model?.uploadKey) return setSavedUrl(null)
+    if (!isUpload) return setSavedUrl(null)
+    if (c.model?.url) return setSavedUrl(import.meta.env.BASE_URL + c.model.url)
+    if (!c.model?.uploadKey) return setSavedUrl(null)
     getModelUrl(c.model.uploadKey).then(setSavedUrl)
-  }, [isUpload, c.model?.uploadKey, c.model?.uploadedAt])
+  }, [isUpload, c.model?.url, c.model?.uploadKey, c.model?.uploadedAt])
   useEffect(() => () => { if (fileUrl) URL.revokeObjectURL(fileUrl) }, [fileUrl])
 
   const bounds = (stats?.bounds ?? (isUpload ? c.model?.bounds : undefined)) as Bounds | undefined
@@ -194,7 +196,7 @@ function Detail({ c, onSave }: { c: Row; onSave: (o: CommunityOverride) => void 
         const prev = isUpload ? c.model! : null
         o.model = {
           ...base,
-          kind: 'upload', uploadKey: key, manifestUrl: '', baseUrl: '',
+          kind: 'upload', uploadKey: file ? key : prev?.uploadKey, url: file ? '' : prev?.url, manifestUrl: '', baseUrl: '',
           scale, upAxis, recenter, floorHeight: floorH, bounds: b,
           center: recenter ? bottomCenter(b, upAxis) : [0, 0, 0],
           size: sizeOf(b, upAxis, scale),
@@ -314,7 +316,7 @@ function Detail({ c, onSave }: { c: Row; onSave: (o: CommunityOverride) => void 
                 {file ? (
                   <button className="text-rose-600 hover:underline" onClick={cancelFile}>取消此檔</button>
                 ) : (
-                  isUpload && <button className="text-rose-600 hover:underline" data-testid="glb-remove" onClick={removeUpload}>移除上傳模型</button>
+                  isUpload && !!c.model?.uploadKey && <button className="text-rose-600 hover:underline" data-testid="glb-remove" onClick={removeUpload}>移除上傳模型</button>
                 )}
               </div>
             </div>

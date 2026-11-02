@@ -18,6 +18,8 @@ export interface ModelPlacement {
   kind?: 'manifest' | 'upload'
   /** 上傳 GLB 的儲存鍵 */
   uploadKey?: string
+  /** 單一 GLB 的靜態網址（隨網站部署，例：models/pinju.glb）；有此值時不讀 IndexedDB */
+  url?: string
   /** 單位換算（模型單位 → 公尺）：m=1、cm=0.01、mm=0.001、ft=0.3048 */
   scale?: number
   /** 模型上軸：glTF 標準為 Y；部分 BIM 匯出為 Z */

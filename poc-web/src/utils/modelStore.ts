@@ -54,7 +54,7 @@ export async function checkGlb(file: Blob): Promise<GlbCheck> {
   const jsonLen = head.getUint32(12, true)
   const json = JSON.parse(new TextDecoder().decode(await file.slice(20, 20 + jsonLen).arrayBuffer()))
   const req: string[] = json.extensionsRequired ?? []
-  const bad = req.filter((e) => /draco|meshopt/i.test(e))
+  const bad = req.filter((e) => /draco/i.test(e))
   if (bad.length) return { ok: false, error: `模型使用 ${bad.join('、')} 壓縮，請先以 gltf-transform 解壓縮後再上傳` }
   return { ok: true, generator: json.asset?.generator, meshes: json.meshes?.length ?? 0 }
 }

@@ -247,9 +247,10 @@ export function MapView() {
   // 後台上傳的 GLB（IndexedDB → blob URL）
   useEffect(() => {
     for (const c of s.communities) {
-      const key = c.model?.kind === 'upload' ? c.model.uploadKey : null
-      if (!key || uploadUrls[c.id]) continue
-      getModelUrl(key)
+      if (c.model?.kind !== 'upload' || uploadUrls[c.id]) continue
+      const { url: staticUrl, uploadKey: key } = c.model
+      if (!staticUrl && !key) continue
+      ;(staticUrl ? resolveAsset(import.meta.env.BASE_URL + staticUrl) : getModelUrl(key!))
         .then((url) => url && setUploadUrls((prev) => ({ ...prev, [c.id]: url })))
         .catch(console.error)
     }

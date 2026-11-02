@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js'
 import type { Bounds } from '@/utils/uploadModel'
 
 export interface ModelStats { bounds: Bounds; tris: number; meshes: number; materials: number }
@@ -78,7 +79,7 @@ export default function ModelPreview({ url, upAxis, scale, onStats, onError }: {
     const ctx = sceneRef.current
     if (!ctx) return
     let cancelled = false
-    new GLTFLoader().load(
+    new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).load(
       url,
       (gltf) => {
         if (cancelled) return

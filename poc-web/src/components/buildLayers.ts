@@ -8,7 +8,7 @@ import type { Layer, PickingInfo } from '@deck.gl/core'
 import type { BusStop, Community, Facility, FacilityCategory, LifeCircleQuery, LifeCircleResult, ModelManifest, Unit, ViewMode } from '@/types'
 import { CATEGORY } from '@/config/lifeCircle'
 import { circlePolygon, haversine } from '@/utils/geo'
-import { uploadPlacement } from '@/utils/uploadModel'
+import { floorElevation, towerFootprint, uploadPlacement } from '@/utils/uploadModel'
 
 const BRAND: [number, number, number] = [5, 150, 105] // 主色（翠綠）
 /** 3D 設施立標高度（公尺） */
@@ -370,12 +370,12 @@ export function buildLayers(ctx: LayerContext): Layer[] {
       }),
     )
     if (hl && is3d) {
-      const fh = m.floorHeight ?? 3.2
-      const z = p.baseZ + (hl.level - 1) * fh
+      const { z, h: fh } = floorElevation(m, hl.level)
+      const ring = 'tower' in hl && hl.tower ? towerFootprint(m, hl.tower) : p.footprint
       out.push(
         new PolygonLayer({
           id: `upload-floor-${c.id}`,
-          data: [{ polygon: p.footprint.map(([x, y]) => [x, y, z]) }],
+          data: [{ polygon: ring.map(([x, y]) => [x, y, z]) }],
           getPolygon: (d: { polygon: number[][] }) => d.polygon,
           extruded: true,
           getElevation: fh * 0.92,

@@ -34,6 +34,12 @@ export interface ModelPlacement {
   size?: [number, number, number]
   /** 每層樓高（公尺），供樓層亮顯與視野分析推算 */
   floorHeight?: number
+  /** 各樓層樓板高度（模型局部上軸座標，索引 0＝1F）；有此值時優先於 floorHeight */
+  floorLevels?: number[]
+  /** 屋頂層樓板高度（模型局部上軸座標），以上歸為 RF */
+  roofLevel?: number
+  /** 雙塔模型依平面座標切分棟別：座標 < at 歸 low 棟，否則歸 high 棟 */
+  towerSplit?: { axis: 'x' | 'z'; at: number; low: string; high: string }
   fileName?: string
   bytes?: number
   tris?: number

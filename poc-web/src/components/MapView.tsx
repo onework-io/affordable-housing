@@ -190,7 +190,7 @@ export function MapView() {
       // 點建物：BIM 模型可點到樓層，量體只到社區
       const hit = resolvePick(picked)
       // 點 BIM 模型：切換到單棟檢視（three.js）；量體仍只選取社區
-      if (hit && picked?.layer?.id.startsWith('model-')) return st.openBuilding(hit.communityId, hit.floor ?? null)
+      if (hit && (picked?.layer?.id.startsWith('model-') || picked?.layer?.id.startsWith('upload-'))) return st.openBuilding(hit.communityId, hit.floor ?? null)
       if (hit) return st.selectCommunity(hit.communityId, { fly: st.selectedCommunityId !== hit.communityId, floor: hit.floor ?? null })
       // 桃園市社區範圍：顯示社區基本資料
       if (map.getLayer('ty-community-fill') && map.getLayoutProperty('ty-community-fill', 'visibility') !== 'none') {

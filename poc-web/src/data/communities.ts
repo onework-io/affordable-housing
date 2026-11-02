@@ -94,12 +94,12 @@ export const COMMUNITIES: Community[] = [
     district: '中壢區',
     address: '桃園市中壢區龍岡路二段 321 巷旁（中壢運動園區，示意位置）',
     lngLat: [121.2331, 24.94358],
-    floorsAbove: 14,
+    floorsAbove: 15,
     floorsBelow: 2,
     siteArea: 8600,
     towers: [
-      { id: 'A', label: 'A 棟', fromFloor: 2, toFloor: 14, unitCodes: range(1, 6).map((n) => String(n).padStart(2, '0')) },
-      { id: 'B', label: 'B 棟', fromFloor: 2, toFloor: 13, unitCodes: range(1, 6).map((n) => String(n).padStart(2, '0')) },
+      { id: 'A', label: 'A 棟', fromFloor: 2, toFloor: 15, unitCodes: range(1, 6).map((n) => String(n).padStart(2, '0')) },
+      { id: 'B', label: 'B 棟', fromFloor: 2, toFloor: 15, unitCodes: range(1, 6).map((n) => String(n).padStart(2, '0')) },
     ],
     model: {
       kind: 'upload',
@@ -117,7 +117,11 @@ export const COMMUNITIES: Community[] = [
       bounds: [7.7, 0, -76.4, 52.1, 58.2, -25.2], // 兩棟建物範圍（不含基地地面）
       center: [29.9, 0, -50.8],
       size: [44.4, 51.2, 58.2],
-      floorHeight: 3.6,
+      floorHeight: 3.2,
+      // 由模型樓板高度量得：1F 4.2 m、2F 以上每層 3.2 m，屋頂板 49.2 m
+      floorLevels: [0, 4.4, 7.6, 10.8, 14.0, 17.2, 20.4, 23.6, 26.8, 30.0, 33.2, 36.4, 39.6, 42.8, 46.0],
+      roofLevel: 49.2,
+      towerSplit: { axis: 'z', at: -50.8, low: 'A', high: 'B' }, // 模型座標北側 A 棟、南側 B 棟
       fileName: 'pinju.glb',
       bytes: 9819900,
       tris: 1569462,

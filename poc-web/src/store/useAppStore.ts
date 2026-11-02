@@ -226,8 +226,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       let excludeM = 35
       if (c.model?.kind === 'upload') {
         // 上傳 GLB：以每層樓高推算，觀察點在錨點（底面中心）
-        const { uploadPlacement } = await import('@/utils/uploadModel')
-        floorZ = uploadPlacement(c.model).baseZ + (floor.level - 1) * (c.model.floorHeight ?? 3.2)
+        const { floorElevation } = await import('@/utils/uploadModel')
+        floorZ = floorElevation(c.model, floor.level).z
         center = c.model.anchor
         excludeM = Math.max(35, Math.max(...(c.model.size ?? [60, 60]).slice(0, 2)) / 2 + 8)
       } else if (c.model) {

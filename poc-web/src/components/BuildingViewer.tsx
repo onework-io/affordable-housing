@@ -4,10 +4,12 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js'
+import { getModelUrl } from '@/utils/modelStore'
 import { selectedCommunity, selectedUnit, useAppStore } from '@/store/useAppStore'
 import * as api from '@/services/api'
 import { resolveAsset } from '@/utils/assetUrl'
-import type { ModelManifest } from '@/types'
+import type { ModelManifest, ModelPlacement } from '@/types'
 
 const C_BASE = new THREE.Color('#f4f5f2')
 const C_PODIUM = new THREE.Color('#e5e7e3')
@@ -25,6 +27,116 @@ interface FloorObj {
   group: THREE.Group
   mat: THREE.MeshStandardMaterial
   lines: THREE.LineSegments[]
+  /** 各網格與其原始材質（每層一份，才能個別半透明／亮顯） */
+  meshes: { mesh: THREE.Mesh; orig: THREE.Material }[]
+}
+
+type MatMode = 'white' | 'original'
+
+/** 每層一份原始材質的複本 */
+function origCache() {
+  const m = new Map<string, THREE.Material>()
+  return (src: THREE.Material) => {
+    if (!m.has(src.uuid)) {
+      const c = src.clone()
+      c.userData.baseOpacity = c.opacity
+      c.userData.baseTransparent = c.transparent
+      m.set(src.uuid, c)
+    }
+    return m.get(src.uuid)!
+  }
+}
+
+/**
+ * 單一 GLB（後台上傳或隨站部署）：依樓板高度與棟別切分三角面，組成「每棟每層」一組網格，
+ * 幾何共用原始頂點資料、只重建索引，記憶體負擔小。
+ */
+async function buildSingleGlb(url: string, m: ModelPlacement, towerIds: string[], root: THREE.Group, onProgress: (p: number) => void): Promise<FloorObj[]> {
+  const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder)
+  const gltf = await loader.loadAsync(url, (e) => e.total && onProgress(0.8 * (e.loaded / e.total)))
+  const scene = gltf.scene
+  // 上軸 Z 的模型先轉成 Y 朝上
+  if ((m.upAxis ?? 'Y') === 'Z') scene.rotation.x = -Math.PI / 2
+  scene.updateMatrixWorld(true)
+  const levels = m.floorLevels ?? []
+  const fh = m.floorHeight ?? 3.2
+  const bb = new THREE.Box3().setFromObject(scene)
+  const minY = bb.min.y
+  const roof = m.roofLevel
+  const tol = 0.3
+  const levelOf = (y: number) => {
+    if (roof != null && y >= roof - tol) return 99
+    if (levels.length) {
+      let i = levels.length - 1
+      while (i > 0 && y < levels[i] - tol) i--
+      return i + 1
+    }
+    return Math.max(1, Math.floor((y - minY + tol) / fh) + 1)
+  }
+  const sp = m.towerSplit
+  const towerOf = (x: number, z: number) => (sp ? ((sp.axis === 'x' ? x : z) < sp.at ? sp.low : sp.high) : towerIds[0] ?? 'M')
+
+  type Bucket = { tower: string; level: number; parts: Map<THREE.Mesh, number[]> }
+  const buckets = new Map<string, Bucket>()
+  const meshes: THREE.Mesh[] = []
+  scene.traverse((o) => (o as THREE.Mesh).isMesh && meshes.push(o as THREE.Mesh))
+  const v = new THREE.Vector3()
+  const pts = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()]
+  let doneTris = 0
+  const totalTris = meshes.reduce((a, me) => a + (me.geometry.index ? me.geometry.index.count : me.geometry.attributes.position.count) / 3, 0)
+  for (const me of meshes) {
+    const g = me.geometry
+    const pos = g.attributes.position
+    const idx = g.index
+    const n = idx ? idx.count : pos.count
+    for (let i = 0; i < n; i += 3) {
+      for (let k = 0; k < 3; k++) pts[k].fromBufferAttribute(pos, idx ? idx.getX(i + k) : i + k).applyMatrix4(me.matrixWorld)
+      v.copy(pts[0]).add(pts[1]).add(pts[2]).multiplyScalar(1 / 3)
+      const tw = towerOf(v.x, v.z)
+      const lv = levelOf(v.y)
+      const key = `${tw}|${lv}`
+      let b = buckets.get(key)
+      if (!b) buckets.set(key, (b = { tower: tw, level: lv, parts: new Map() }))
+      let arr = b.parts.get(me)
+      if (!arr) b.parts.set(me, (arr = []))
+      arr.push(idx ? idx.getX(i) : i, idx ? idx.getX(i + 1) : i + 1, idx ? idx.getX(i + 2) : i + 2)
+    }
+    doneTris += n / 3
+    onProgress(0.8 + 0.2 * (doneTris / totalTris))
+    await new Promise((r) => setTimeout(r, 0))
+  }
+  const lineMat = new THREE.LineBasicMaterial({ color: '#64748b', transparent: true, opacity: 0.55 })
+  const withEdges = totalTris < 400_000 // 大模型不畫邊線，避免卡頓
+  const floors: FloorObj[] = []
+  for (const b of [...buckets.values()].sort((a, c) => a.level - c.level)) {
+    const group = new THREE.Group()
+    const mat = new THREE.MeshStandardMaterial({ color: C_BASE.clone(), roughness: 0.85, metalness: 0, transparent: true, opacity: 1 })
+    const orig = origCache()
+    const id = `${b.tower}-${b.level}`
+    const items: FloorObj['meshes'] = []
+    const lines: THREE.LineSegments[] = []
+    for (const [src, arr] of b.parts) {
+      const g = new THREE.BufferGeometry()
+      for (const [name, attr] of Object.entries(src.geometry.attributes)) g.setAttribute(name, attr)
+      g.setIndex(new THREE.BufferAttribute(new Uint32Array(arr), 1))
+      const om = orig(Array.isArray(src.material) ? src.material[0] : src.material)
+      const mesh = new THREE.Mesh(g, mat)
+      mesh.matrixAutoUpdate = false
+      mesh.matrix.copy(src.matrixWorld)
+      mesh.userData.floorId = id
+      if (withEdges) {
+        const ls = new THREE.LineSegments(new THREE.EdgesGeometry(g, 30), lineMat)
+        ls.raycast = () => {}
+        mesh.add(ls)
+        lines.push(ls)
+      }
+      group.add(mesh)
+      items.push({ mesh, orig: om })
+    }
+    root.add(group)
+    floors.push({ id, tower: b.tower, level: b.level, floor: b.level === 99 ? 'RF' : `${b.level}F`, offsetY: 0, group, mat, lines, meshes: items })
+  }
+  return floors
 }
 
 export default function BuildingViewer() {
@@ -40,6 +152,7 @@ export default function BuildingViewer() {
   const [cut, setCut] = useState(99)
   const [explode, setExplode] = useState(false)
   const [ghost, setGhost] = useState(true)
+  const [matMode, setMatMode] = useState<MatMode>('white')
   const [hover, setHover] = useState<{ id: string; x: number; y: number } | null>(null)
 
   const towers = c?.towers ?? []
@@ -121,6 +234,20 @@ export default function BuildingViewer() {
 
     // 載入：每個 mesh 檔只載一次，各樓層共用幾何
     ;(async () => {
+      const mdl = c.model!
+      if (mdl.kind === 'upload') {
+        const url = mdl.url ? await resolveAsset(import.meta.env.BASE_URL + mdl.url) : mdl.uploadKey ? await getModelUrl(mdl.uploadKey) : null
+        if (!url) throw new Error('找不到模型檔')
+        const floors = await buildSingleGlb(url, mdl, (c.towers ?? []).map((t) => t.id), root, (p) => !disposed && setProgress(p))
+        if (disposed) return
+        const box = new THREE.Box3().setFromObject(root)
+        const center = box.getCenter(new THREE.Vector3())
+        root.position.set(-center.x, -box.min.y, -center.z)
+        floorsRef.current = floors
+        fit()
+        setReady(true)
+        return
+      }
       const manifest: ModelManifest = await api.getModelManifest(c.model!.manifestUrl)
       const loader = new GLTFLoader()
       const geoms = new Map<string, { scene: THREE.Group; edges: Map<THREE.BufferGeometry, THREE.EdgesGeometry> }>()
@@ -147,9 +274,12 @@ export default function BuildingViewer() {
         const g = src.scene.clone(true)
         const mat = new THREE.MeshStandardMaterial({ color: C_BASE.clone(), roughness: 0.85, metalness: 0, transparent: true, opacity: 1 })
         const lines: THREE.LineSegments[] = []
+        const items: FloorObj['meshes'] = []
+        const orig = origCache()
         g.traverse((o) => {
           const mesh = o as THREE.Mesh
           if (!mesh.isMesh) return
+          items.push({ mesh, orig: orig(Array.isArray(mesh.material) ? mesh.material[0] : mesh.material) })
           mesh.material = mat
           mesh.userData.floorId = f.id
           const e = src.edges.get(mesh.geometry)
@@ -164,7 +294,7 @@ export default function BuildingViewer() {
         group.add(g)
         group.position.y = f.offsetY
         root.add(group)
-        floors.push({ id: f.id, tower: f.tower, level: f.level, floor: f.floor, offsetY: f.offsetY, group, mat, lines })
+        floors.push({ id: f.id, tower: f.tower, level: f.level, floor: f.floor, offsetY: f.offsetY, group, mat, lines, meshes: items })
       }
       // 置中：底部貼地、平面中心在原點
       const box = new THREE.Box3().setFromObject(root)
@@ -248,9 +378,19 @@ export default function BuildingViewer() {
       const dim = ghost && !!sel && !isSel && !isHover
       f.mat.opacity = dim ? 0.18 : 1
       f.mat.depthWrite = !dim
-      for (const l of f.lines) l.visible = !dim
+      for (const l of f.lines) l.visible = !dim && matMode === 'white'
+      for (const { mesh, orig } of f.meshes) {
+        mesh.material = matMode === 'white' ? f.mat : orig
+        if (matMode !== 'original') continue
+        const om = orig as THREE.MeshStandardMaterial
+        if (om.emissive) om.emissive.copy(isSel ? C_SEL : isHover ? C_HOVER : new THREE.Color(0)).multiplyScalar(isSel ? 0.55 : isHover ? 0.35 : 0)
+        om.transparent = dim || !!om.userData.baseTransparent
+        om.opacity = dim ? 0.15 : om.userData.baseOpacity ?? 1
+        om.depthWrite = !dim
+        om.needsUpdate = true
+      }
     }
-  }, [ready, tower, cut, explode, ghost, sel?.tower, sel?.level, hover?.id, saleByFloor, maxLevel])
+  }, [ready, tower, cut, explode, ghost, matMode, sel?.tower, sel?.level, hover?.id, saleByFloor, maxLevel])
 
   // 分層展開或切換棟別後重新取景
   useEffect(() => {
@@ -296,6 +436,13 @@ export default function BuildingViewer() {
           <input type="checkbox" className="accent-brand" checked={ghost} onChange={(e) => setGhost(e.target.checked)} />
           其他樓層半透明
         </label>
+        <div className="flex overflow-hidden rounded-lg border border-slate-200 bg-white text-xs shadow-card">
+          {([['white', '白模'], ['original', '原始材質']] as const).map(([k, label]) => (
+            <button key={k} data-testid={`bv-mat-${k}`} className={`px-2.5 py-1.5 font-medium ${matMode === k ? 'bg-ink text-white' : 'hover:bg-brand-soft'}`} onClick={() => setMatMode(k)}>
+              {label}
+            </button>
+          ))}
+        </div>
         <button className="btn-ghost py-1.5 text-xs shadow-card" onClick={() => ctxRef.current?.fit()}>
           重設視角
         </button>
@@ -343,7 +490,7 @@ export default function BuildingViewer() {
 
       {!ready && (
         <div className="absolute inset-0 grid place-items-center">
-          <div className="rounded-xl bg-white px-5 py-3 text-sm shadow-card">載入 BIM 分層模型… {Math.round(progress * 100)}%</div>
+          <div className="rounded-xl bg-white px-5 py-3 text-sm shadow-card">{c.model.kind === 'upload' ? '載入 BIM 模型並依樓層切分…' : '載入 BIM 分層模型…'} {Math.round(progress * 100)}%</div>
         </div>
       )}
 

@@ -92,7 +92,7 @@ export function RightPanel() {
           <dt className="text-ink-muted">3D 模型</dt>
           <dd>{c.model ? <span className={`chip ${c.model.status === 'confirmed' ? 'bg-emerald-50 text-emerald-700' : 'bg-blue-50 text-blue-700'}`}>{c.model.status === 'confirmed' ? '已對應' : '待確認'} · {c.model.source}</span> : <span className="chip bg-amber-50 text-amber-700">待提供 · 量體示意</span>}</dd>
         </dl>
-        {c.model && c.model.kind !== 'upload' && (
+        {c.model && (
           <button
             className={`mt-3 w-full ${s.buildingViewId === c.id ? 'btn-ghost' : 'btn-primary'}`}
             data-testid="open-building"

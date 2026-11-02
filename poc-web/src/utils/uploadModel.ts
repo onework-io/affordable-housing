@@ -34,6 +34,36 @@ export function sizeOf(b: Bounds, up: 'Y' | 'Z', scale: number): V3 {
 
 const offsetLngLat = ([lng, lat]: LngLat, e: number, n: number): LngLat => [lng + e / (111320 * Math.cos((lat * Math.PI) / 180)), lat + n / 110574]
 
+/** 某樓層樓板在模型局部上軸的高度（未縮放） */
+export function floorLocal(m: ModelPlacement, level: number): number {
+  const lv = m.floorLevels
+  if (lv?.length) return level > lv.length ? (m.roofLevel ?? lv[lv.length - 1]) : lv[Math.max(0, level - 1)]
+  const b = m.bounds ?? [0, 0, 0, 0, 0, 0]
+  const minUp = (m.upAxis ?? 'Y') === 'Y' ? b[1] : b[2]
+  return minUp + (level - 1) * (m.floorHeight ?? 3.2)
+}
+
+/** 某樓層樓板的絕對高程（公尺）與層高 */
+export function floorElevation(m: ModelPlacement, level: number): { z: number; h: number } {
+  const s = m.scale ?? 1
+  const cu = toEnu(m.center ?? [0, 0, 0], m.upAxis ?? 'Y')[2]
+  const here = floorLocal(m, level)
+  const next = floorLocal(m, level + 1)
+  return { z: m.altitude + (here - cu) * s, h: Math.max(2.5, (next - here) * s || (m.floorHeight ?? 3.2)) }
+}
+
+/** 雙塔模型中某一棟的平面輪廓（依 towerSplit 切半） */
+export function towerFootprint(m: ModelPlacement, tower: string) {
+  const sp = m.towerSplit
+  const b = [...(m.bounds ?? [0, 0, 0, 0, 0, 0])] as Bounds
+  if (sp && (tower === sp.low || tower === sp.high)) {
+    const k = sp.axis === 'x' ? 0 : 2
+    if (tower === sp.low) b[k + 3] = Math.min(b[k + 3], sp.at)
+    else b[k] = Math.max(b[k], sp.at)
+  }
+  return uploadPlacement({ ...m, bounds: b }).footprint
+}
+
 /** deck.gl ScenegraphLayer 參數與平面輪廓 */
 export function uploadPlacement(m: ModelPlacement) {
   const up = m.upAxis ?? 'Y'

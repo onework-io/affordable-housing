@@ -93,7 +93,7 @@ export const COMMUNITIES: Community[] = [
     name: '品聚中運段',
     district: '中壢區',
     address: '桃園市中壢區龍岡路二段 321 巷旁（中壢運動園區，示意位置）',
-    lngLat: [121.23322, 24.94315],
+    lngLat: [121.2331, 24.94358],
     floorsAbove: 14,
     floorsBelow: 2,
     siteArea: 8600,
@@ -106,7 +106,7 @@ export const COMMUNITIES: Community[] = [
       url: 'models/pinju.glb',
       manifestUrl: '',
       baseUrl: '',
-      anchor: [121.23322, 24.94315],
+      anchor: [121.2331, 24.94358],
       yaw: 90, // 模型兩棟南北排列；套繪圖為東西並排，故轉 90°
       altitude: 0,
       status: 'pending',

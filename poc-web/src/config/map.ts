@@ -30,9 +30,9 @@ export const PACKED_TILES = import.meta.env.VITE_TILES === 'packed'
 const PACKED_MAXZOOM: Record<BasemapId, number> = { emap: 17, photo: 16 }
 const PACKED_BOUNDS: [number, number, number, number] = [121.05, 24.9, 121.45, 25.18]
 // 打包的 OSM 建物（OpenFreeMap z14 向量圖磚）範圍
-const PACKED_OSM_BOUNDS: [number, number, number, number] = [121.24, 24.94, 121.36, 25.03]
+const PACKED_OSM_BOUNDS: [number, number, number, number] = [121.22, 24.93, 121.36, 25.03] // 含中壢運動園區
 // 打包的桃園市 3D 建物／社區範圍（zoom 16）範圍
-const PACKED_TY_BOUNDS: [number, number, number, number] = [121.28, 24.975, 121.32, 25.01]
+const PACKED_TY_BOUNDS: [number, number, number, number] = [121.22, 24.93, 121.32, 25.01] // 桃園區＋中壢運動園區
 const OSM_ATTR =
   '<a href="https://openfreemap.org" target="_blank">OpenFreeMap</a> <a href="https://www.openmaptiles.org/" target="_blank">© OpenMapTiles</a> Data from <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>'
 

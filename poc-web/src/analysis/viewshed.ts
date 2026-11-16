@@ -1,8 +1,7 @@
 // 視野分析（Viewshed）：以視線演算法（Line of Sight）從觀察點向四周放射，
 // 沿每條視線記錄目前最大仰角，格網高度（建物高）的仰角不低於此值即為可見，否則被遮蔽。
 // 地表模型：桃園市三維建物柵格（scripts/build_dsm.py，4 公尺格網，地形視為平坦）。
-import dsmUrl from '@/data/dsm.png'
-import meta from '@/data/dsm.json'
+import { dsmFor } from './dsm'
 import type { LngLat } from '@/types'
 
 export interface ViewshedInput {
@@ -20,42 +19,11 @@ export interface ViewshedResult {
   input: ViewshedInput
 }
 
-const [W0, S0, , N0] = meta.bbox as [number, number, number, number]
-const GW = meta.width
-const GH = meta.height
-const CELL = meta.cellM
-const MID = (N0 + S0) / 2
-const MX = 111320 * Math.cos((MID * Math.PI) / 180)
-const MY = 110574
-
-let dsm: Promise<Uint8Array> | null = null
-function loadDsm(): Promise<Uint8Array> {
-  dsm ??= new Promise((resolve, reject) => {
-    const img = new Image()
-    img.onload = () => {
-      const c = document.createElement('canvas')
-      c.width = GW
-      c.height = GH
-      const ctx = c.getContext('2d', { willReadFrequently: true })!
-      ctx.drawImage(img, 0, 0)
-      const px = ctx.getImageData(0, 0, GW, GH).data
-      const h = new Uint8Array(GW * GH)
-      for (let i = 0; i < h.length; i++) h[i] = px[i * 4]
-      resolve(h)
-    }
-    img.onerror = () => {
-      dsm = null
-      reject(new Error('地表模型載入失敗'))
-    }
-    img.src = dsmUrl
-  })
-  return dsm
-}
-
-export const DSM_SOURCE = meta.source
-
 export async function computeViewshed(input: ViewshedInput): Promise<ViewshedResult> {
-  const H = await loadDsm()
+  const d = await dsmFor(input.center)
+  if (!d) throw new Error('此位置不在地表模型範圍內，無法分析')
+  const { H, width: GW, height: GH, cellM: CELL, mx: MX, my: MY } = d
+  const [W0, , , N0] = d.bbox
   const { center, eyeH, radiusM } = input
   const excludeM = input.excludeM ?? 35
   // 觀察點在 DSM 格網中的位置（浮點）

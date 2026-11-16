@@ -40,6 +40,8 @@ export interface ModelPlacement {
   roofLevel?: number
   /** 雙塔模型依平面座標切分棟別：座標 < at 歸 low 棟，否則歸 high 棟 */
   towerSplit?: { axis: 'x' | 'z'; at: number; low: string; high: string }
+  /** 分層模型的平面輪廓（錨點為原點、東北向公尺、未旋轉），供日照分析；tower 對應棟別，其他（例 PODIUM）為裙樓 */
+  outlines?: { tower: string; ring: [number, number][]; top: number }[]
   fileName?: string
   bytes?: number
   tris?: number

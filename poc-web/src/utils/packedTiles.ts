@@ -13,7 +13,8 @@ function decode(b64: string): ArrayBuffer {
   return bytes.buffer
 }
 
-function bundle(layer: string, z: string) {
+/** 讀取某圖層某縮放的打包圖磚（base64），與地圖共用快取 */
+export function bundle(layer: string, z: string) {
   const key = `${layer}/${z}`
   if (!bundles.has(key))
     bundles.set(

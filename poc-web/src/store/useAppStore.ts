@@ -6,6 +6,7 @@ import * as api from '@/services/api'
 import { circleBounds } from '@/utils/geo'
 import { DEFAULT_FILTER, matchUnit, type UnitFilter } from '@/config/filters'
 import type { ViewshedResult } from '@/analysis/viewshed'
+import type { SunlightResult } from '@/analysis/sunlight'
 
 export type CenterSource = { type: 'community'; id: string } | { type: 'point'; lngLat: LngLat }
 
@@ -54,6 +55,13 @@ interface AppState {
   viewshedRadius: number
   /** 單棟檢視（three.js）中的社區 */
   buildingViewId: string | null
+  /** 日照分析 */
+  sun: SunParams
+  sunlight: SunlightResult | null
+  sunBusy: boolean
+  sunError: string | null
+  /** 陰影動畫：目前顯示第幾個時刻（null＝顯示日照時數） */
+  sunStep: number | null
 
   init: () => Promise<void>
   setViewMode: (m: ViewMode) => void
@@ -83,6 +91,21 @@ interface AppState {
   setBusSpeed: (v: number) => void
   openBuilding: (id: string, floor?: { tower: string; level: number } | null) => void
   closeBuilding: () => void
+  setSun: (p: Partial<SunParams>) => void
+  runSunlight: () => Promise<void>
+  clearSunlight: () => void
+  setSunStep: (i: number | null) => void
+}
+
+export interface SunParams {
+  date: string
+  start: number
+  end: number
+  stepMin: number
+  mode: 'area' | 'facade'
+  radiusM: number
+  /** 區域模式分析高度：ground＝地面 1.5 m；floor＝所選樓層窗台高 */
+  height: 'ground' | 'floor'
 }
 
 const MAX_COMPARE = 3
@@ -127,6 +150,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   viewshedRadius: 600,
   busSpeed: 10,
   buildingViewId: null,
+  sun: { date: `${new Date().getFullYear()}-12-22`, start: 8, end: 16, stepMin: 15, mode: 'facade', radiusM: 150, height: 'ground' },
+  sunlight: null,
+  sunBusy: false,
+  sunError: null,
+  sunStep: null,
 
   init: async () => {
     const [communities, onSaleCounts, facilities, allUnits, busStops] = await Promise.all([api.getCommunities(), api.getOnSaleCounts(), api.getFacilities(), api.getAllUnits(), api.getBusStops()])
@@ -143,10 +171,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   setViewMode: (viewMode) => set({ viewMode }),
 
   selectCommunity: async (id, opts) => {
-    if (!id) return set({ selectedCommunityId: null, selectedUnitId: null, floorFilter: null, units: [], buildingViewId: null })
+    if (!id) return set({ selectedCommunityId: null, selectedUnitId: null, floorFilter: null, units: [], buildingViewId: null, sunlight: null, sunStep: null })
     if (get().buildingViewId && get().buildingViewId !== id) set({ buildingViewId: null })
     const same = get().selectedCommunityId === id
-    set({ selectedCommunityId: id, selectedUnitId: null, floorFilter: opts?.floor ?? null, unitsLoading: !same })
+    set({ selectedCommunityId: id, selectedUnitId: null, floorFilter: opts?.floor ?? null, unitsLoading: !same, ...(same ? {} : { sunlight: null, sunStep: null }) })
     const c = get().communities.find((x) => x.id === id)
     if (c && opts?.fly !== false) get().flyTo({ center: c.lngLat, zoom: 17 })
     if (!same) {
@@ -259,6 +287,37 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ buildingViewId: id })
   },
   closeBuilding: () => set({ buildingViewId: null }),
+  setSun: (p) => set({ sun: { ...get().sun, ...p } }),
+  setSunStep: (sunStep) => set({ sunStep }),
+  clearSunlight: () => set({ sunlight: null, sunStep: null, sunError: null }),
+  runSunlight: async () => {
+    const st = get()
+    const c = st.communities.find((x) => x.id === st.selectedCommunityId)
+    if (!c) return
+    set({ sunBusy: true, sunError: null, sunStep: null, buildingViewId: null })
+    try {
+      const [{ computeSunlight }, { sunInputs, communityCenter, canFacade }, { floorElevation }] = await Promise.all([
+        import('@/analysis/sunlight'), import('@/analysis/sunInputs'), import('@/utils/uploadModel'),
+      ])
+      const p = st.sun
+      const mode = p.mode === 'facade' && !canFacade(c) ? 'area' : p.mode
+      const { obstacles, facades } = sunInputs(st.communities, c)
+      // 區域模式的分析高度
+      let heightM = 1.5
+      const u = st.units.find((x) => x.id === st.selectedUnitId)
+      const floor = st.floorFilter ?? (u ? { tower: u.tower, level: u.level } : null)
+      if (p.height === 'floor' && floor) {
+        if (c.model?.kind === 'upload') heightM = floorElevation(c.model, floor.level).z + 1.5
+        else heightM = (floor.level - 1) * (c.massing?.floorHeight ?? 3.2) + 1.5
+      }
+      const res = await computeSunlight({ mode, center: communityCenter(c), radiusM: p.radiusM, heightM, date: p.date, start: p.start, end: p.end, stepMin: p.stepMin, obstacles, facades })
+      set({ sunlight: res, sunBusy: false })
+      if (res.bounds) get().flyTo({ bounds: [[res.bounds[0], res.bounds[1]], [res.bounds[2], res.bounds[3]]] })
+    } catch (e) {
+      console.error(e)
+      set({ sunBusy: false, sunError: (e as Error).message })
+    }
+  },
 }))
 
 export const selectedCommunity = (s: AppState) => s.communities.find((c) => c.id === s.selectedCommunityId) ?? null

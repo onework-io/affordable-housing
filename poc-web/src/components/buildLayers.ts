@@ -1,6 +1,7 @@
 // deck.gl 圖層組裝（沿用 TaiwanWarRoom03 composables/buildDeckLayers 的作法：每次狀態變更重建圖層描述）
-import { BitmapLayer, IconLayer, LineLayer, PolygonLayer, ScatterplotLayer, TextLayer } from '@deck.gl/layers'
+import { BitmapLayer, IconLayer, LineLayer, PointCloudLayer, PolygonLayer, ScatterplotLayer, TextLayer } from '@deck.gl/layers'
 import type { ViewshedResult } from '@/analysis/viewshed'
+import { hoursColor, type FacadePoint, type SunlightResult } from '@/analysis/sunlight'
 import { ScenegraphLayer } from '@deck.gl/mesh-layers'
 import { Tile3DLayer } from '@deck.gl/geo-layers'
 import { GOOGLE_3DTILES_KEY, GOOGLE_3DTILES_URL, TILESET_URL } from '@/config/map'
@@ -63,6 +64,9 @@ export interface LayerContext {
   viewshed: (ViewshedResult & { label: string }) | null
   /** 後台上傳的 GLB：社區 → 可載入的網址 */
   uploadUrls: Record<string, string>
+  /** 日照分析結果與陰影動畫時刻 */
+  sunlight: SunlightResult | null
+  sunStep: number | null
 }
 
 /**
@@ -133,6 +137,38 @@ export function buildLayers(ctx: LayerContext): Layer[] {
   }
 
   // ── 視野分析：可見（綠）／被遮蔽（紅）網格貼地，觀察點以立桿標示高度 ─────────
+  if (ctx.sunlight) {
+    const r = ctx.sunlight
+    const k = ctx.sunStep
+    if (r.image && r.bounds) {
+      const [w, s, e, n] = r.bounds
+      const z = is3d ? Math.max(0.3, r.input.heightM - 1.2) : 0
+      out.push(
+        new BitmapLayer({
+          id: 'sunlight-area',
+          image: k != null && r.shadowFrame ? r.shadowFrame(k) : r.image,
+          bounds: [[w, s, z], [w, n, z], [e, n, z], [e, s, z]],
+          textureParameters: { minFilter: 'nearest', magFilter: 'nearest' },
+          parameters: { depthCompare: 'less-equal' },
+        }),
+      )
+    }
+    if (r.points) {
+      out.push(
+        new PointCloudLayer<FacadePoint>({
+          id: 'sunlight-facade',
+          data: r.points,
+          getPosition: (d) => d.pos,
+          getColor: (d) => (k != null ? (d.lit[k] ? [253, 224, 71, 255] : [30, 41, 59, 230]) : [...hoursColor(d.hours, r.totalHours), 255]),
+          pointSize: 5,
+          sizeUnits: 'pixels',
+          pickable: true,
+          updateTriggers: { getColor: [k] },
+        }),
+      )
+    }
+  }
+
   if (ctx.viewshed) {
     const v = ctx.viewshed
     const top: [number, number, number] = [v.input.center[0], v.input.center[1], v.input.eyeH]

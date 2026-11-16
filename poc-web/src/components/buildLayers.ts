@@ -1,8 +1,8 @@
 // deck.gl 圖層組裝（沿用 TaiwanWarRoom03 composables/buildDeckLayers 的作法：每次狀態變更重建圖層描述）
-import { BitmapLayer, IconLayer, LineLayer, PointCloudLayer, PolygonLayer, ScatterplotLayer, TextLayer } from '@deck.gl/layers'
+import { BitmapLayer, IconLayer, LineLayer, PolygonLayer, ScatterplotLayer, TextLayer } from '@deck.gl/layers'
 import type { ViewshedResult } from '@/analysis/viewshed'
-import { hoursColor, type FacadePoint, type SunlightResult } from '@/analysis/sunlight'
-import { ScenegraphLayer } from '@deck.gl/mesh-layers'
+import type { SunlightResult } from '@/analysis/sunlight'
+import { ScenegraphLayer, SimpleMeshLayer } from '@deck.gl/mesh-layers'
 import { Tile3DLayer } from '@deck.gl/geo-layers'
 import { GOOGLE_3DTILES_KEY, GOOGLE_3DTILES_URL, TILESET_URL } from '@/config/map'
 import type { Layer, PickingInfo } from '@deck.gl/core'
@@ -91,6 +91,19 @@ export function resolvePick(info: PickingInfo | null): { communityId: string; fl
   return null
 }
 
+// 同一分析結果、同一時刻共用網格物件，避免每次重建圖層都重新上傳 GPU
+const meshCache = new WeakMap<SunlightResult, Map<number, object>>()
+function sceneMesh(r: SunlightResult, k: number | null) {
+  if (!meshCache.has(r)) meshCache.set(r, new Map())
+  const m = meshCache.get(r)!
+  const key = k ?? -1
+  if (!m.has(key)) {
+    const c = r.cells!
+    m.set(key, { attributes: { positions: { value: c.positions, size: 3 }, normals: { value: c.normals, size: 3 }, colors: { value: r.colorsFor!(k), size: 3 } } })
+  }
+  return m.get(key)!
+}
+
 export function buildLayers(ctx: LayerContext): Layer[] {
   const out: Layer[] = []
   const is3d = ctx.viewMode === '3d'
@@ -142,7 +155,7 @@ export function buildLayers(ctx: LayerContext): Layer[] {
     const k = ctx.sunStep
     if (r.image && r.bounds) {
       const [w, s, e, n] = r.bounds
-      const z = is3d ? Math.max(0.3, r.input.heightM - 1.2) : 0
+      const z = is3d ? (r.input.mode === 'scene' ? 0.15 : Math.max(0.3, r.input.heightM - 1.2)) : 0
       out.push(
         new BitmapLayer({
           id: 'sunlight-area',
@@ -153,17 +166,18 @@ export function buildLayers(ctx: LayerContext): Layer[] {
         }),
       )
     }
-    if (r.points) {
+    // 範圍模式：建物外牆＋屋頂網格（以分析中心為原點的公尺座標，單一網格、逐頂點上色）
+    if (r.cells && r.colorsFor && r.cells.count && is3d) {
+      const center = r.input.center
       out.push(
-        new PointCloudLayer<FacadePoint>({
-          id: 'sunlight-facade',
-          data: r.points,
-          getPosition: (d) => d.pos,
-          getColor: (d) => (k != null ? (d.lit[k] ? [253, 224, 71, 255] : [30, 41, 59, 230]) : [...hoursColor(d.hours, r.totalHours), 255]),
-          pointSize: 5,
-          sizeUnits: 'pixels',
-          pickable: true,
-          updateTriggers: { getColor: [k] },
+        new SimpleMeshLayer<number>({
+          id: 'sunlight-scene',
+          data: [0],
+          mesh: sceneMesh(r, k) as never,
+          getPosition: () => [center[0], center[1], 0],
+          getColor: [255, 255, 255, 255],
+          material: { ambient: 0.75, diffuse: 0.35, shininess: 0, specularColor: [0, 0, 0] },
+          parameters: { depthCompare: 'less-equal', cullMode: 'none' },
         }),
       )
     }

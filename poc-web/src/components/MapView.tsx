@@ -136,13 +136,6 @@ export function MapView() {
           const b = info.object as BusStop
           return { text: `🚌 ${b.name}\n${b.routes.length ? `經過 ${b.routes.length} 條路線（點選查看）` : '路線資料未對應'}` }
         }
-        if (info.layer?.id === 'sunlight-facade' && info.object) {
-          const p = info.object as { hours: number; tower: string; level: number }
-          const st = useAppStore.getState()
-          const c = st.communities.find((x) => x.id === st.selectedCommunityId)
-          const tl = c?.towers.find((t) => t.id === p.tower)?.label ?? ''
-          return { text: `☀️ ${tl} ${p.level}F 外牆\n日照 ${p.hours.toFixed(2)} 小時` }
-        }
         const f = info.object as Facility | undefined
         if (!f || !('category' in f)) return null
         const q = useAppStore.getState().query

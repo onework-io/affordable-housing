@@ -295,8 +295,7 @@ function SunlightCard({ towerLabel }: { towerLabel: (id: string) => string }) {
   const r = s.sunlight
   const p = s.sun
   const floor = s.floorFilter ?? (u ? { tower: u.tower, level: u.level } : null)
-  const facadeOk = !!c && (c.model?.kind === 'upload' || (!c.model && !!c.massing))
-  const mode = p.mode === 'facade' && !facadeOk ? 'area' : p.mode
+  const mode = p.mode
   const [playing, setPlaying] = useState(false)
   useEffect(() => {
     if (!playing || !r) return
@@ -344,23 +343,24 @@ function SunlightCard({ towerLabel }: { towerLabel: (id: string) => string }) {
         </div>
         <div className="flex items-center gap-1.5">
           <div className={seg}>
-            <button className={segBtn(mode === 'facade')} disabled={!facadeOk} title={facadeOk ? '' : '此社區模型無法取得外牆輪廓，請用區域模式'} data-testid="sun-mode-facade" onClick={() => s.setSun({ mode: 'facade' })}>建物立面（每層）</button>
-            <button className={segBtn(mode === 'area')} data-testid="sun-mode-area" onClick={() => s.setSun({ mode: 'area' })}>周邊區域</button>
+            <button className={segBtn(mode === 'scene')} data-testid="sun-mode-scene" onClick={() => s.setSun({ mode: 'scene' })}>範圍內建物＋地面</button>
+            <button className={segBtn(mode === 'area')} data-testid="sun-mode-area" onClick={() => s.setSun({ mode: 'area' })}>僅地面</button>
           </div>
         </div>
-        {mode === 'area' && (
-          <div className="flex items-center gap-1.5">
-            <div className={seg}>
-              {[100, 150, 250].map((m) => <button key={m} className={segBtn(p.radiusM === m)} data-testid={`sun-radius-${m}`} onClick={() => s.setSun({ radiusM: m })}>半徑 {m} m</button>)}
-            </div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <div className={seg}>
+            {[100, 150, 250].map((m) => <button key={m} className={segBtn(p.radiusM === m)} data-testid={`sun-radius-${m}`} onClick={() => s.setSun({ radiusM: m })}>半徑 {m} m</button>)}
+          </div>
+          {mode === 'area' && (
             <div className={seg}>
               <button className={segBtn(p.height === 'ground')} onClick={() => s.setSun({ height: 'ground' })}>地面</button>
               <button className={segBtn(p.height === 'floor')} disabled={!floor} title={floor ? '' : '先選樓層或戶別'} data-testid="sun-height-floor" onClick={() => s.setSun({ height: 'floor' })}>
                 {floor ? `${towerLabel(floor.tower)} ${floor.level}F` : '所選樓層'}
               </button>
             </div>
-          </div>
-        )}
+          )}
+        </div>
+        {mode === 'scene' && <p className="text-[10px] leading-snug text-ink-muted">以本案為中心，半徑內所有建物（本案模型、平台社區、地政局三維建物）的外牆每層、屋頂與地面都切成網格逐格計算，直接在 3D 建物上著色。</p>}
       </div>
       <button className="btn-primary mt-2 w-full" data-testid="run-sunlight" disabled={s.sunBusy} onClick={() => s.runSunlight()}>
         {s.sunBusy ? '計算中…' : `分析 ${p.date.slice(5).replace('-', '/')} ${fmtClock(p.start)}–${fmtClock(p.end)} 日照`}
@@ -377,12 +377,29 @@ function SunlightCard({ towerLabel }: { towerLabel: (id: string) => string }) {
               <span>{r.totalHours.toFixed(1)} 小時</span>
             </div>
           </div>
-          <div className="grid grid-cols-4 gap-1 text-center text-[11px]">
-            <div className="rounded bg-slate-50 py-1"><div className="text-ink-muted">平均</div><b>{(r.avgHours ?? 0).toFixed(1)} h</b></div>
-            {r.pctOver.map((o) => (
-              <div key={o.h} className="rounded bg-slate-50 py-1"><div className="text-ink-muted">≥{o.h} 小時</div><b>{Math.round(o.pct * 100)}%</b></div>
-            ))}
-          </div>
+          {r.stats ? (
+            <>
+              <div className="grid grid-cols-4 gap-1 text-center text-[11px]" data-testid="sun-stats">
+                {r.stats.map((o) => (
+                  <div key={o.label} className="rounded bg-slate-50 py-1"><div className="text-ink-muted">{o.label}</div><b>{o.avg.toFixed(1)} h</b></div>
+                ))}
+              </div>
+              <div className="flex gap-1 text-center text-[11px]">
+                <div className="flex-1 rounded bg-slate-50 py-1 text-ink-muted">{r.floors ? '本案外牆' : '外牆'}網格</div>
+                {r.pctOver.map((o) => (
+                  <div key={o.h} className="flex-1 rounded bg-slate-50 py-1"><span className="text-ink-muted">≥{o.h}h </span><b>{Math.round(o.pct * 100)}%</b></div>
+                ))}
+              </div>
+              <p className="text-[10px] text-ink-muted">共 {r.buildings} 棟建物、{r.cells?.count.toLocaleString()} 個外牆／屋頂網格（外牆約 3 m × 每層）。</p>
+            </>
+          ) : (
+            <div className="grid grid-cols-4 gap-1 text-center text-[11px]">
+              <div className="rounded bg-slate-50 py-1"><div className="text-ink-muted">平均</div><b>{(r.avgHours ?? 0).toFixed(1)} h</b></div>
+              {r.pctOver.map((o) => (
+                <div key={o.h} className="rounded bg-slate-50 py-1"><div className="text-ink-muted">≥{o.h} 小時</div><b>{Math.round(o.pct * 100)}%</b></div>
+              ))}
+            </div>
+          )}
           {r.floors && (
             <div className="max-h-56 overflow-y-auto rounded border border-slate-100" data-testid="sun-floor-table">
               <table className="w-full text-[11px]">
@@ -427,7 +444,7 @@ function SunlightCard({ towerLabel }: { towerLabel: (id: string) => string }) {
             </div>
           </div>
           <p className="text-[10px] leading-snug text-ink-muted">
-            {r.floors ? '平均＝該層外牆各取樣點平均；最多＝日照最好的位置，紅字表示整層沒有任何位置達 1 小時。' : ''}參考：建築技術規則以冬至日有效日照 1 小時檢討住宅區建築物高度。地形視為平坦；周邊建物：{r.source}。
+            {r.floors ? '每層表：平均＝該層外牆各網格平均；最多＝日照最好的位置，紅字表示整層沒有任何位置達 1 小時。' : ''}參考：建築技術規則以冬至日有效日照 1 小時檢討住宅區建築物高度。地形視為平坦；周邊建物：{r.source}。
           </p>
           <button className="btn-ghost w-full py-1 text-xs" data-testid="clear-sunlight" onClick={() => s.clearSunlight()}>清除日照分析</button>
         </div>

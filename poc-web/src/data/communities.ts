@@ -27,6 +27,12 @@ export const COMMUNITIES: Community[] = [
       altitude: 0,
       status: 'confirmed',
       source: 'PoC 社區',
+      // 由各層 GLB 頂點取凸包（scripts/_hull.mjs），供日照分析
+      outlines: [
+        { tower: 'T1', ring: [[2.7, 0.6], [31.7, 0.6], [31.7, 39.4], [2.7, 39.4]], top: 119.7 },
+        { tower: 'T2', ring: [[58.6, 6.1], [68.9, 1.4], [77.6, 1.4], [77.6, 37.3], [68.8, 37.3], [58.6, 32.1]], top: 121.8 },
+        { tower: 'PODIUM', ring: [[-1.4, 0], [82.7, 0], [82.7, 44.1], [-1.3, 44.5]], top: 20.2 },
+      ],
     },
     dataDate: '115.10.07',
     note: '3D 為 PoC 替代模型（雙塔 33 層），樓層與戶數依模型設定，非本案實際建物。',

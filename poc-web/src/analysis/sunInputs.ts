@@ -1,45 +1,53 @@
-// 由平台社區資料組出日照分析的遮蔽物（建物）與立面取樣
-import type { Community, LngLat } from '@/types'
-import { floorElevation, towerFootprint, uploadPlacement } from '@/utils/uploadModel'
-import type { FacadeTower, Obstacle } from './sunlight'
+// 由平台社區資料組出日照分析的平台建物（BIM／量體）：平面輪廓、屋頂高、各層樓板高
+import type { Community, LngLat, ModelManifest } from '@/types'
+import { floorElevation, rotCW, towerFootprint, uploadPlacement } from '@/utils/uploadModel'
+import type { Obstacle, PlatformTower } from './sunlight'
 
 /** 社區中心（BIM 錨點或社區座標） */
 export const communityCenter = (c: Community): LngLat => c.model?.anchor ?? c.lngLat
 
-/** 可做立面日照的社區：上傳／單一 GLB 模型或量體示意 */
-export const canFacade = (c: Community) => c.model?.kind === 'upload' || (!c.model && !!c.massing)
+const offset = ([lng, lat]: LngLat, e: number, n: number): LngLat => [lng + e / (111320 * Math.cos((lat * Math.PI) / 180)), lat + n / 110574]
 
-function towersOf(c: Community): { tower: string; label: string; ring: LngLat[]; top: number; levels: { level: number; z: number }[] }[] {
+function towersOf(c: Community, manifest?: ModelManifest): PlatformTower[] {
   const m = c.model
+  const label = (id: string) => c.towers.find((x) => x.id === id)?.label || id
   if (m?.kind === 'upload') {
     const ids = m.towerSplit ? [m.towerSplit.low, m.towerSplit.high] : [c.towers[0]?.id ?? 'M']
     return ids.map((id) => {
-      const t = c.towers.find((x) => x.id === id)
-      const top = t?.toFloor ?? c.floorsAbove
+      const top = c.towers.find((x) => x.id === id)?.toFloor ?? c.floorsAbove
       return {
-        tower: id,
-        label: t?.label || id,
+        cid: c.id, tower: id, label: label(id),
         ring: m.towerSplit ? towerFootprint(m, id) : uploadPlacement(m).footprint,
         top: floorElevation(m, top + 1).z,
-        // 每層取窗台高度（樓板上 1.5 公尺）
-        levels: Array.from({ length: top }, (_, i) => ({ level: i + 1, z: floorElevation(m, i + 1).z + 1.5 })),
+        rows: Array.from({ length: top }, (_, i) => ({ level: i + 1, z0: floorElevation(m, i + 1).z, z1: floorElevation(m, i + 2).z })),
       }
+    })
+  }
+  if (m?.outlines) {
+    return m.outlines.map((o) => {
+      const ring = o.ring.map(([e, n]) => {
+        const [x, y] = rotCW(e, n, m.yaw)
+        return offset(m.anchor, x, y)
+      })
+      if (ring.length && (ring[0][0] !== ring[ring.length - 1][0] || ring[0][1] !== ring[ring.length - 1][1])) ring.push(ring[0])
+      const isTower = c.towers.some((t) => t.id === o.tower)
+      const fl = (isTower ? manifest?.floors ?? [] : []).filter((f) => f.tower === o.tower && f.level < 99).sort((a, b) => a.level - b.level)
+      const rows = fl.map((f, i) => ({ level: f.level, z0: m.altitude + f.minY, z1: m.altitude + (fl[i + 1]?.minY ?? o.top) }))
+      return { cid: c.id, tower: o.tower, label: label(o.tower), ring, top: m.altitude + o.top, rows: rows.length ? rows : undefined }
     })
   }
   if (!m && c.massing) {
     const fh = c.massing.floorHeight
     const t = c.towers[0]
     return [{
-      tower: t?.id ?? 'M', label: t?.label || '', ring: c.massing.footprint, top: c.floorsAbove * fh,
-      levels: Array.from({ length: c.floorsAbove }, (_, i) => ({ level: i + 1, z: i * fh + 1.5 })),
+      cid: c.id, tower: t?.id ?? 'M', label: t?.label || '', ring: c.massing.footprint, top: c.floorsAbove * fh,
+      rows: Array.from({ length: c.floorsAbove }, (_, i) => ({ level: i + 1, z0: i * fh, z1: (i + 1) * fh })),
     }]
   }
   return []
 }
 
-export function sunInputs(all: Community[], target: Community): { obstacles: Obstacle[]; facades: FacadeTower[] } {
-  const obstacles: Obstacle[] = []
-  for (const c of all) for (const t of towersOf(c)) obstacles.push({ ring: t.ring, h: t.top })
-  const facades = towersOf(target).map(({ tower, label, ring, levels }) => ({ tower, label, ring, levels }))
-  return { obstacles, facades }
+export function sunInputs(all: Community[], manifests: Record<string, ModelManifest>): { obstacles: Obstacle[]; towers: PlatformTower[] } {
+  const towers = all.flatMap((c) => towersOf(c, manifests[c.id]))
+  return { towers, obstacles: towers.map((t) => ({ ring: t.ring, h: t.top })) }
 }

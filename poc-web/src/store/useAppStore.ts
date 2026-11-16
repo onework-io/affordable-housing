@@ -1,6 +1,6 @@
 // 共用狀態：2D/3D 是同一個地圖實例，選取建案、查詢條件與生活圈都放在這裡，切換圖台不會遺失。
 import { create } from 'zustand'
-import type { BusStop, Community, Facility, FacilityCategory, LifeCircleQuery, LifeCircleResult, LngLat, TravelMode, Unit, ViewMode } from '@/types'
+import type { BusStop, Community, Facility, FacilityCategory, LifeCircleQuery, LifeCircleResult, LngLat, ModelManifest, TravelMode, Unit, ViewMode } from '@/types'
 import { CATEGORY_KEYS, defaultMinutes, minuteRange, radiusKm } from '@/config/lifeCircle'
 import * as api from '@/services/api'
 import { circleBounds } from '@/utils/geo'
@@ -102,7 +102,7 @@ export interface SunParams {
   start: number
   end: number
   stepMin: number
-  mode: 'area' | 'facade'
+  mode: 'scene' | 'area'
   radiusM: number
   /** 區域模式分析高度：ground＝地面 1.5 m；floor＝所選樓層窗台高 */
   height: 'ground' | 'floor'
@@ -150,7 +150,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   viewshedRadius: 600,
   busSpeed: 10,
   buildingViewId: null,
-  sun: { date: `${new Date().getFullYear()}-12-22`, start: 8, end: 16, stepMin: 15, mode: 'facade', radiusM: 150, height: 'ground' },
+  sun: { date: `${new Date().getFullYear()}-12-22`, start: 8, end: 16, stepMin: 15, mode: 'scene', radiusM: 150, height: 'ground' },
   sunlight: null,
   sunBusy: false,
   sunError: null,
@@ -296,21 +296,27 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (!c) return
     set({ sunBusy: true, sunError: null, sunStep: null, buildingViewId: null })
     try {
-      const [{ computeSunlight }, { sunInputs, communityCenter, canFacade }, { floorElevation }] = await Promise.all([
+      const [{ computeSunlight }, { sunInputs, communityCenter }, { floorElevation }] = await Promise.all([
         import('@/analysis/sunlight'), import('@/analysis/sunInputs'), import('@/utils/uploadModel'),
       ])
       const p = st.sun
-      const mode = p.mode === 'facade' && !canFacade(c) ? 'area' : p.mode
-      const { obstacles, facades } = sunInputs(st.communities, c)
+      const mode = p.mode
+      // 分層模型的樓層高度（manifest）
+      const manifests: Record<string, ModelManifest> = {}
+      await Promise.all(st.communities.filter((x) => x.model && x.model.kind !== 'upload').map(async (x) => {
+        try { manifests[x.id] = await api.getModelManifest(x.model!.manifestUrl) } catch { /* 無 manifest 時外牆以每 3 公尺分格 */ }
+      }))
+      const { obstacles, towers } = sunInputs(st.communities, manifests)
       // 區域模式的分析高度
       let heightM = 1.5
       const u = st.units.find((x) => x.id === st.selectedUnitId)
       const floor = st.floorFilter ?? (u ? { tower: u.tower, level: u.level } : null)
-      if (p.height === 'floor' && floor) {
+      if (mode === 'area' && p.height === 'floor' && floor) {
         if (c.model?.kind === 'upload') heightM = floorElevation(c.model, floor.level).z + 1.5
+        else if (manifests[c.id]) heightM = c.model!.altitude + (manifests[c.id].floors.find((f) => f.tower === floor.tower && f.level === floor.level)?.minY ?? 0) + 1.5
         else heightM = (floor.level - 1) * (c.massing?.floorHeight ?? 3.2) + 1.5
       }
-      const res = await computeSunlight({ mode, center: communityCenter(c), radiusM: p.radiusM, heightM, date: p.date, start: p.start, end: p.end, stepMin: p.stepMin, obstacles, facades })
+      const res = await computeSunlight({ mode, center: communityCenter(c), radiusM: p.radiusM, heightM, date: p.date, start: p.start, end: p.end, stepMin: p.stepMin, obstacles, towers, targetId: c.id })
       set({ sunlight: res, sunBusy: false })
       if (res.bounds) get().flyTo({ bounds: [[res.bounds[0], res.bounds[1]], [res.bounds[2], res.bounds[3]]] })
     } catch (e) {

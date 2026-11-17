@@ -1,5 +1,6 @@
 // 左側：生活圈設定（起點、交通方式、時間、設施分類）與圈內社區
 import { CATEGORY, CATEGORY_KEYS, MODE_LABEL } from '@/config/lifeCircle'
+import { PoiSearch } from './PoiSearch'
 import { useAdminStore } from '@/admin/adminStore'
 import { useAppStore } from '@/store/useAppStore'
 import { busStats, fmtKm } from '@/utils/geo'
@@ -193,6 +194,8 @@ export function LeftPanel() {
           })}
         </ul>
       </section>
+
+      <PoiSearch />
 
       <section className="panel space-y-2 p-4">
         <h3 className="text-sm font-bold">顯示周邊設施</h3>

@@ -2,11 +2,12 @@
 import { BitmapLayer, IconLayer, LineLayer, PolygonLayer, ScatterplotLayer, TextLayer } from '@deck.gl/layers'
 import type { ViewshedResult } from '@/analysis/viewshed'
 import type { SunlightResult } from '@/analysis/sunlight'
+import { POI_CAT } from '@/config/poi'
 import { ScenegraphLayer, SimpleMeshLayer } from '@deck.gl/mesh-layers'
 import { Tile3DLayer } from '@deck.gl/geo-layers'
 import { GOOGLE_3DTILES_KEY, GOOGLE_3DTILES_URL, TILESET_URL } from '@/config/map'
 import type { Layer, PickingInfo } from '@deck.gl/core'
-import type { BusStop, Community, Facility, FacilityCategory, LifeCircleQuery, LifeCircleResult, ModelManifest, Unit, ViewMode } from '@/types'
+import type { BusStop, Community, Facility, PoiHit, FacilityCategory, LifeCircleQuery, LifeCircleResult, ModelManifest, Unit, ViewMode } from '@/types'
 import { CATEGORY } from '@/config/lifeCircle'
 import { circlePolygon, haversine } from '@/utils/geo'
 import { floorElevation, towerFootprint, uploadPlacement } from '@/utils/uploadModel'
@@ -67,6 +68,10 @@ export interface LayerContext {
   /** 日照分析結果與陰影動畫時刻 */
   sunlight: SunlightResult | null
   sunStep: number | null
+  /** 生活圈 POI 搜尋結果與選取 */
+  poiHits: PoiHit[]
+  poiSel: PoiHit | null
+  showPoi: boolean
 }
 
 /**
@@ -204,6 +209,63 @@ export function buildLayers(ctx: LayerContext): Layer[] {
         background: true,
         getBackgroundColor: [124, 58, 237, 235],
         backgroundPadding: [8, 4, 8, 4],
+        parameters: { depthCompare: 'always' },
+      }),
+    )
+  }
+
+  // ── 生活圈 POI：圈內符合搜尋的點位（面向鏡頭、不被建物遮住），選取者放大並標名稱 ──
+  if (ctx.showPoi && ctx.poiHits.length) {
+    const z = is3d ? 1.5 : 0
+    out.push(
+      new ScatterplotLayer<PoiHit>({
+        id: 'poi-hits',
+        data: ctx.poiHits,
+        getPosition: (p) => [p.lngLat[0], p.lngLat[1], z],
+        getFillColor: (p) => [...POI_CAT[p.cat].color, 235],
+        getLineColor: [255, 255, 255, 255],
+        getRadius: 5,
+        radiusUnits: 'pixels',
+        lineWidthMinPixels: 1.5,
+        stroked: true,
+        billboard: true,
+        pickable: true,
+        parameters: { depthCompare: 'always' },
+      }),
+    )
+  }
+  if (ctx.showPoi && ctx.poiSel) {
+    const p = ctx.poiSel
+    const pos: [number, number, number] = [p.lngLat[0], p.lngLat[1], is3d ? 1.5 : 0]
+    out.push(
+      new ScatterplotLayer<PoiHit>({
+        id: 'poi-sel',
+        data: [p],
+        getPosition: () => pos,
+        getFillColor: [...POI_CAT[p.cat].color, 255],
+        getLineColor: [255, 255, 255, 255],
+        getRadius: 10,
+        radiusUnits: 'pixels',
+        lineWidthMinPixels: 3,
+        stroked: true,
+        billboard: true,
+        parameters: { depthCompare: 'always' },
+      }),
+      new TextLayer<PoiHit>({
+        id: 'poi-sel-label',
+        data: [p],
+        getPosition: () => pos,
+        getText: (d) => d.name,
+        getPixelOffset: [0, -22],
+        getSize: 13,
+        getColor: [255, 255, 255, 255],
+        fontFamily: '"PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif',
+        fontWeight: 700,
+        characterSet: 'auto',
+        background: true,
+        getBackgroundColor: [...POI_CAT[p.cat].color, 240],
+        backgroundPadding: [8, 4, 8, 4],
+        billboard: true,
         parameters: { depthCompare: 'always' },
       }),
     )

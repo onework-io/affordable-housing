@@ -15,7 +15,8 @@ import { selectedUnit, useAppStore } from '@/store/useAppStore'
 import { buildLayers, resolvePick } from './buildLayers'
 import { getModelUrl } from '@/utils/modelStore'
 import * as api from '@/services/api'
-import type { BusStop, Facility, ModelManifest } from '@/types'
+import type { BusStop, Facility, ModelManifest, PoiHit } from '@/types'
+import { POI_CAT } from '@/config/poi'
 import { fmtKm, haversine } from '@/utils/geo'
 import { busLayers, loadBuses, positions, type Bus, type BusState } from '@/sim/busSim'
 const DEMO = import.meta.env.DEV || new URLSearchParams(location.search).has('demo')
@@ -136,6 +137,10 @@ export function MapView() {
           const b = info.object as BusStop
           return { text: `🚌 ${b.name}\n${b.routes.length ? `經過 ${b.routes.length} 條路線（點選查看）` : '路線資料未對應'}` }
         }
+        if (info.layer?.id === 'poi-hits' && info.object) {
+          const p = info.object as PoiHit
+          return { text: `${p.name}\n${POI_CAT[p.cat].label}${p.cuisine ? ` · ${p.cuisine}` : ''} · 距中心 ${fmtKm(p.distanceKm)}\n點選看詳細資料` }
+        }
         const f = info.object as Facility | undefined
         if (!f || !('category' in f)) return null
         const q = useAppStore.getState().query
@@ -181,6 +186,8 @@ export function MapView() {
         return
       }
       busHighlightRef.current = null
+      // 生活圈 POI：選取並顯示詳細資料
+      if (picked?.layer?.id === 'poi-hits' && picked.object) return st.selectPoi((picked.object as PoiHit).id, false)
       // 公車站牌：顯示站名與經過路線
       if (picked?.layer?.id.startsWith('bus-stops') && picked.object) {
         const b = picked.object as BusStop
@@ -256,6 +263,22 @@ export function MapView() {
     }
   }, [s.communities, uploadUrls])
 
+  // 生活圈 POI：選取時開詳細資料視窗（清單點選或地圖點選）
+  const poiPopupRef = useRef<maplibregl.Popup | null>(null)
+  useEffect(() => {
+    const map = mapRef.current
+    const old = poiPopupRef.current
+    poiPopupRef.current = null
+    old?.remove()
+    const p = s.poiSel
+    if (!map || !p) return
+    const popup = new maplibregl.Popup({ closeButton: true, maxWidth: '300px', offset: { center: [0, 0], top: [0, 12], 'top-left': [8, 12], 'top-right': [-8, 12], bottom: [0, -36], 'bottom-left': [8, -36], 'bottom-right': [-8, -36], left: [14, 0], right: [-14, 0] } }).setLngLat(p.lngLat).setDOMContent(poiPopup(p)).addTo(map)
+    popup.on('close', () => {
+      if (poiPopupRef.current === popup && useAppStore.getState().poiSel?.id === p.id) useAppStore.getState().selectPoi(null, false)
+    })
+    poiPopupRef.current = popup
+  }, [s.poiSel])
+
   // 圖層
   const layers = useMemo(
     () =>
@@ -278,8 +301,11 @@ export function MapView() {
         uploadUrls,
         sunlight: s.sunlight,
         sunStep: s.sunStep,
+        poiHits: s.poiHits,
+        poiSel: s.poiSel,
+        showPoi: s.showPoi,
       }),
-    [s.viewMode, s.communities, manifests, meshUrls, uploadUrls, s.facilities, s.categories, s.query, s.result, s.selectedCommunityId, unit, s.floorFilter, s.busStops, s.showBus, near, s.viewshed, s.sunlight, s.sunStep],
+    [s.poiHits, s.poiSel, s.showPoi, s.viewMode, s.communities, manifests, meshUrls, uploadUrls, s.facilities, s.categories, s.query, s.result, s.selectedCommunityId, unit, s.floorFilter, s.busStops, s.showBus, near, s.viewshed, s.sunlight, s.sunStep],
   )
   // 動態公車（模擬）：每一幀只重算公車圖層，其餘圖層沿用
   useEffect(() => {
@@ -476,4 +502,45 @@ export function MapView() {
       </div>
     </div>
   )
+}
+
+/** POI 詳細資料（以 DOM 組成，文字一律 textContent） */
+function poiPopup(p: PoiHit) {
+  const el = document.createElement('div')
+  el.className = 'text-xs leading-relaxed'
+  el.dataset.testid = 'poi-popup'
+  const add = (cls: string, text: string, tag = 'div') => {
+    const d = document.createElement(tag)
+    d.className = cls
+    d.textContent = text
+    el.appendChild(d)
+    return d
+  }
+  const clip = (t: string, n: number) => (t.length > n ? `${t.slice(0, n)}…` : t)
+  const t = add('text-sm font-bold', p.name)
+  t.style.color = `rgb(${POI_CAT[p.cat].color.join(',')})`
+  if (p.en) add('text-[11px] text-ink-faint', p.en)
+  add('text-ink-muted', [POI_CAT[p.cat].label, p.cuisine, p.district, `距生活圈中心 ${fmtKm(p.distanceKm)}`].filter(Boolean).join(' · '))
+  if (p.addr) add('', `地址：${p.addr}`)
+  if (p.tel) add('', `電話：${p.tel}`)
+  if (p.hours) add('', `營業：${clip(p.hours.replace(/星期/g, '週').replace(/\n/g, ' '), 90)}`)
+  if (p.price && p.cat !== 'hotel') add('', `票價：${clip(p.price.replace(/\n/g, ' '), 60)}`)
+  if (p.desc) add('mt-1 text-[11px] text-ink-muted', clip(p.desc, 110))
+  const links = document.createElement('div')
+  links.className = 'mt-1 flex gap-3'
+  const link = (href: string, text: string) => {
+    if (!/^https?:\/\//.test(href)) return
+    const a = document.createElement('a')
+    a.href = href
+    a.target = '_blank'
+    a.rel = 'noopener noreferrer'
+    a.className = 'text-brand underline'
+    a.textContent = text
+    links.appendChild(a)
+  }
+  link(p.web, '官方網站')
+  link(p.srcUrl, p.src.startsWith('OSM') ? 'OpenStreetMap' : '觀光旅遊網')
+  if (links.childElementCount) el.appendChild(links)
+  add('mt-1 text-[10px] text-ink-faint', `資料來源：${p.src === 'TYCG' ? '桃園市政府觀光旅遊局' : p.src === 'OSM' ? 'OpenStreetMap' : 'OpenStreetMap＋桃園市政府觀光旅遊局'}`)
+  return el
 }

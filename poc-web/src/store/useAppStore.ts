@@ -1,8 +1,9 @@
 // 共用狀態：2D/3D 是同一個地圖實例，選取建案、查詢條件與生活圈都放在這裡，切換圖台不會遺失。
 import { create } from 'zustand'
-import type { BusStop, Community, Facility, FacilityCategory, LifeCircleQuery, LifeCircleResult, LngLat, ModelManifest, TravelMode, Unit, ViewMode } from '@/types'
+import type { BusStop, Community, Facility, FacilityCategory, LifeCircleQuery, LifeCircleResult, LngLat, ModelManifest, PoiCategory, PoiHit, TravelMode, Unit, ViewMode } from '@/types'
 import { CATEGORY_KEYS, defaultMinutes, minuteRange, radiusKm } from '@/config/lifeCircle'
 import * as api from '@/services/api'
+import { loadPoiDb, searchPoi } from '@/services/poi'
 import { circleBounds } from '@/utils/geo'
 import { DEFAULT_FILTER, matchUnit, type UnitFilter } from '@/config/filters'
 import type { ViewshedResult } from '@/analysis/viewshed'
@@ -62,6 +63,18 @@ interface AppState {
   sunError: string | null
   /** 陰影動畫：目前顯示第幾個時刻（null＝顯示日照時數） */
   sunStep: number | null
+  /** 生活圈 POI 搜尋 */
+  poiReady: boolean
+  poiError: string | null
+  poiMeta: { name: string; built: string; count: number; license: string } | null
+  poiQ: string
+  poiCats: Set<PoiCategory>
+  /** 生活圈內符合關鍵字的 POI（不分類別，供各類別計數） */
+  poiAll: PoiHit[]
+  /** 再依類別篩選後的結果（地圖與清單） */
+  poiHits: PoiHit[]
+  poiSel: PoiHit | null
+  showPoi: boolean
 
   init: () => Promise<void>
   setViewMode: (m: ViewMode) => void
@@ -92,6 +105,12 @@ interface AppState {
   openBuilding: (id: string, floor?: { tower: string; level: number } | null) => void
   closeBuilding: () => void
   setSun: (p: Partial<SunParams>) => void
+  loadPoi: () => Promise<void>
+  refreshPoi: () => void
+  setPoiQ: (q: string) => void
+  togglePoiCat: (c: PoiCategory, only?: boolean) => void
+  selectPoi: (id: string | null, fly?: boolean) => void
+  setShowPoi: (v: boolean) => void
   runSunlight: () => Promise<void>
   clearSunlight: () => void
   setSunStep: (i: number | null) => void
@@ -155,6 +174,15 @@ export const useAppStore = create<AppState>((set, get) => ({
   sunBusy: false,
   sunError: null,
   sunStep: null,
+  poiReady: false,
+  poiError: null,
+  poiMeta: null,
+  poiQ: '',
+  poiCats: new Set<PoiCategory>(['restaurant', 'attraction', 'museum', 'hotel', 'consume']),
+  poiAll: [],
+  poiHits: [],
+  poiSel: null,
+  showPoi: true,
 
   init: async () => {
     const [communities, onSaleCounts, facilities, allUnits, busStops] = await Promise.all([api.getCommunities(), api.getOnSaleCounts(), api.getFacilities(), api.getAllUnits(), api.getBusStops()])
@@ -166,6 +194,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const compareIds = get().compareIds.filter((id) => communities.some((c) => c.id === id))
     set({ busStops, allUnits, matchCounts: countMatches(allUnits, get().filter), compareIds, communities, onSaleCounts, facilities, minutes, units, ready: true, ...(units.length ? {} : { selectedCommunityId: null, selectedUnitId: null }) })
     await get().runQuery()
+    get().loadPoi()
   },
 
   setViewMode: (viewMode) => set({ viewMode }),
@@ -220,6 +249,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const query: LifeCircleQuery = { center: lngLat, centerLabel: label, mode, minutes, radiusKm: radiusKm(mode, minutes) }
     const result = await api.queryLifeCircle(query)
     set({ query, result })
+    get().refreshPoi()
     if (fit) {
       get().flyTo({ bounds: circleBounds(lngLat, query.radiusKm) })
     }
@@ -324,6 +354,38 @@ export const useAppStore = create<AppState>((set, get) => ({
       set({ sunBusy: false, sunError: (e as Error).message })
     }
   },
+
+  loadPoi: async () => {
+    if (get().poiReady) return
+    try {
+      const db = await loadPoiDb()
+      set({ poiReady: true, poiMeta: db.meta, poiError: null })
+      get().refreshPoi()
+    } catch (e) {
+      set({ poiError: (e as Error).message })
+    }
+  },
+  refreshPoi: () => {
+    const { query, poiQ, poiCats, poiReady, poiSel } = get()
+    if (!poiReady || !query) return set({ poiAll: [], poiHits: [] })
+    const all = searchPoi(query.center, query.radiusKm, poiQ, null)
+    const hits = all.filter((p) => poiCats.has(p.cat))
+    const sel = poiSel ? hits.find((p) => p.id === poiSel.id) ?? null : null
+    set({ poiAll: all, poiHits: hits, poiSel: sel })
+  },
+  setPoiQ: (poiQ) => { set({ poiQ }); get().refreshPoi() },
+  togglePoiCat: (c, only = false) => {
+    const next = only ? new Set<PoiCategory>([c]) : new Set(get().poiCats)
+    if (!only) { if (next.has(c)) next.delete(c); else next.add(c) }
+    set({ poiCats: next })
+    get().refreshPoi()
+  },
+  selectPoi: (id, fly = true) => {
+    const p = id ? get().poiHits.find((x) => x.id === id) ?? null : null
+    set({ poiSel: p })
+    if (p && fly) get().flyTo({ center: p.lngLat, zoom: 17 })
+  },
+  setShowPoi: (showPoi) => set({ showPoi }),
 }))
 
 export const selectedCommunity = (s: AppState) => s.communities.find((c) => c.id === s.selectedCommunityId) ?? null
